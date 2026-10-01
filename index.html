@@ -1,2177 +1,444 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QUIZ // BBIT Placement Arena - Gamified CS Fundamentals</title>
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>ED-01 | Gamified Code Output Prediction Arena</title>
+
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+
+  <!-- Supabase Client JS (Backend Integration) -->
+  <script src="[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)"></script>
+
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
             brand: {
-              50: '#f0f5ff',
-              100: '#e5edff',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
-              800: '#1e40af',
-              900: '#1e3a8a',
-            },
-            accent: {
-              purple: '#6d28d9',
-              indigo: '#4f46e5',
-              violet: '#7c3aed',
-              dark: '#0f172a'
+              yellow: '#FACC15',
+              darkYellow: '#CA8A04',
+              indigo: '#4F46E5',
+              navy: '#0F172A',
+              cardBg: '#1E293B'
             }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-            mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace']
-          },
-          boxShadow: {
-            'card': '0 4px 18px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
-            'card-hover': '0 14px 28px -4px rgba(37, 99, 235, 0.12), 0 6px 12px -2px rgba(15, 23, 42, 0.04)',
-            'btn-blue': '0 8px 18px -4px rgba(37, 99, 235, 0.35)'
           }
         }
       }
     };
   </script>
-
-  <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
-  <!-- Canvas Confetti -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f1f5f9;
-      color: #1e293b;
-      overflow-x: hidden;
-      margin: 0;
-      padding: 0;
+      background-color: #0b0f19;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
-
-    /* Ambient Organic Shapes matching screenshot */
-    .blob-left-lower {
-      position: fixed;
-      left: -130px;
-      bottom: 8%;
-      width: 260px;
-      height: 420px;
-      background: radial-gradient(circle at 60% 50%, #6366f1 0%, #4338ca 100%);
-      border-radius: 45% 55% 60% 40% / 55% 45% 55% 45%;
-      z-index: 1;
-      opacity: 0.9;
-      pointer-events: none;
+    .yellow-border-card {
+      border: 2px solid #FACC15;
+      box-shadow: 0 0 15px rgba(250, 204, 21, 0.2);
     }
-
-    .blob-right-mid {
-      position: fixed;
-      right: -100px;
-      top: 14%;
-      width: 220px;
-      height: 400px;
-      background: radial-gradient(circle at 40% 50%, #4f46e5 0%, #3730a3 100%);
-      border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
-      z-index: 1;
-      opacity: 0.9;
-      pointer-events: none;
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
     }
-
-    .float-cross-icon {
-      position: fixed;
-      right: 32px;
-      bottom: 22%;
-      color: #6366f1;
-      font-size: 34px;
-      font-weight: 800;
-      opacity: 0.85;
-      user-select: none;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    .float-cross-icon-top {
-      position: fixed;
-      right: 24px;
-      top: 14%;
-      color: #818cf8;
-      font-size: 26px;
-      font-weight: 800;
-      opacity: 0.7;
-      user-select: none;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    /* Outer Canvas Frame matching reference UI */
-    .viewport-canvas {
-      border: 5px solid #f59e0b;
-      border-radius: 24px;
-      margin: 12px;
-      min-height: calc(100vh - 24px);
-      position: relative;
-      background-color: #ffffff;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.06);
-      display: flex;
-      flex-direction: column;
-      z-index: 10;
-    }
-
-    @media (max-width: 768px) {
-      .viewport-canvas {
-        border-width: 3px;
-        margin: 6px;
-        border-radius: 14px;
-      }
-      .blob-left-lower, .blob-right-mid, .float-cross-icon, .float-cross-icon-top {
-        display: none;
-      }
-    }
-
-    pre::-webkit-scrollbar {
-      height: 6px;
-    }
-    pre::-webkit-scrollbar-thumb {
-      background: #475569;
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
       border-radius: 4px;
     }
-
-    @keyframes pulseSoft {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-    }
-    .pulse-attention {
-      animation: pulseSoft 2.4s infinite ease-in-out;
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
     }
   </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="min-h-screen flex flex-col justify-between">
 
-  <!-- Ambient background accents -->
-  <div class="blob-left-lower"></div>
-  <div class="blob-right-mid"></div>
-  <div class="float-cross-icon">+</div>
-  <div class="float-cross-icon-top">+</div>
-
-  <!-- Main Viewport Canvas -->
-  <div class="viewport-canvas">
-
-    <header class="w-full px-5 sm:px-8 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white/95 backdrop-blur-md rounded-t-2xl z-30">
+  <!-- ================= TOP HEADER / NAVBAR ================= -->
+  <header class="w-full bg-[#0f172a] border-b border-slate-800 px-4 py-3 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
       
       <!-- Brand Logo -->
-      <div class="flex items-center gap-3 cursor-pointer select-none" onclick="navigateTo('home')">
-        <div class="relative flex items-center justify-center">
-          <div class="w-10 h-10 rounded-full border-[3.5px] border-[#2563eb] flex items-center justify-center font-black text-xl text-[#2563eb] relative">
-            Q
-            <div class="absolute -bottom-1 -right-0.5 w-3.5 h-1.5 bg-[#f59e0b] rounded-full rotate-45"></div>
-          </div>
+      <div class="flex items-center space-x-2">
+        <div class="bg-yellow-400 text-slate-950 font-black px-2.5 py-1 rounded text-lg tracking-wider">
+          QUIZ
         </div>
-        <div class="flex flex-col">
-          <span class="text-xl font-black tracking-tight text-slate-900 leading-none">UIZ</span>
-          <span class="text-[9px] font-bold tracking-widest text-[#2563eb] uppercase mt-0.5">Arena Engine</span>
+        <div>
+          <h1 class="text-sm font-bold text-white tracking-wide">CODE ARENA</h1>
+          <p class="text-[10px] text-yellow-400 font-semibold tracking-wider">BBIT HACKATHON</p>
         </div>
       </div>
 
-      <!-- Navigation Links -->
-      <nav class="hidden md:flex items-center space-x-7 text-sm font-semibold text-slate-600">
-        <button onclick="navigateTo('home')" id="nav-btn-home" class="text-[#2563eb] transition-colors">Home</button>
-        <button onclick="openRulesModal()" class="hover:text-[#2563eb] transition-colors">Rules</button>
-        <button onclick="navigateTo('leaderboard')" id="nav-btn-leaderboard" class="hover:text-[#2563eb] transition-colors">Campus Leaderboard</button>
-        <button onclick="openHelpModal()" class="hover:text-[#2563eb] transition-colors">Help</button>
-      </nav>
-
-      <!-- Right Header Actions: Daily 10 AM Drop Pill, Sound Toggle, and Profile -->
-      <div class="flex items-center gap-2.5 sm:gap-3">
+      <!-- Action Area: Daily Quiz Badge & Contestant Status -->
+      <div class="flex items-center space-x-3">
         
-        <!-- Top Right Daily Quiz Pill -->
-        <button id="header-daily-quiz-btn" onclick="triggerDailyQuizClick()" class="relative flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100/90 text-amber-900 transition-all shadow-sm active:scale-95 group">
-          <div class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></div>
-          <div class="flex flex-col text-left">
-            <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Daily 10 AM</span>
-              <span id="daily-pill-status" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-200/70 text-amber-900">5 Qs</span>
-            </div>
-            <span id="header-drop-countdown" class="text-[11px] font-mono font-bold leading-none text-amber-950 mt-0.5">--:--:--</span>
-          </div>
-          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform"></i>
-        </button>
-
-        <!-- Sound FX Button -->
-        <button onclick="toggleAudio()" id="sound-toggle-btn" title="Toggle Sound FX" class="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
-          <i id="sound-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+        <!-- Daily Quiz Trigger Button (Top Right Corner) -->
+        <button id="dailyQuizBtn" onclick="openDailyQuiz()" class="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg shadow transition transform active:scale-95">
+          <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
+          <span>DAILY SPRINT</span>
+          <span id="dailyStatusBadge" class="bg-slate-950 text-yellow-300 text-[10px] px-1.5 py-0.5 rounded font-bold">10:00 AM</span>
         </button>
 
         <!-- User Profile Pill -->
-        <div id="user-profile-badge">
-          <!-- Injected dynamically -->
+        <div id="userHeaderPill" onclick="openAuthModal()" class="flex items-center space-x-2 bg-slate-800 border border-slate-700 hover:border-yellow-400/50 px-3 py-1.5 rounded-lg cursor-pointer transition">
+          <div class="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white uppercase" id="avatarInitial">
+            ?
+          </div>
+          <div class="hidden sm:block text-left leading-tight">
+            <div id="navUserName" class="text-xs font-bold text-slate-200">Sign In</div>
+            <div id="navUserXP" class="text-[10px] text-yellow-400 font-semibold">0 XP</div>
+          </div>
         </div>
 
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="flex-1 flex flex-col justify-center px-4 sm:px-8 py-6 relative z-20">
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="max-w-6xl w-full mx-auto px-4 py-6 flex-grow">
 
-      <!-- =========================================================================
-           VIEW 1: TOPIC SELECTION (30 QUESTIONS PER TOPIC, ONE-ATTEMPT REVIEW STATE)
-           ========================================================================= -->
-      <section id="view-home" class="max-w-5xl w-full mx-auto my-auto text-center space-y-6 transition-all">
-        
-        <div class="space-y-2">
-          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb]">
-            <i data-lucide="shield-check" class="w-3.5 h-3.5 fill-[#2563eb]"></i>
-            <span>BBIT Placement Preparation Arena &bull; 30 High-Yield Questions Per Topic</span>
-          </div>
-          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 uppercase">
-            Personalize Your <span class="text-[#2563eb]">Quiz Experience</span>
-          </h1>
-          <p class="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto font-normal">
-            For personalized templates, select your domain. Every question has 4 distinct options, randomized sequence, step-by-step compiler explanations, and topic-specific YouTube remedy links.
-          </p>
-        </div>
-
-        <!-- 8-Card Topic Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-2" id="topic-selector-grid">
-          <!-- Dynamically generated with Completed / Start states -->
-        </div>
-
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-xs font-medium text-slate-600">
-          <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-500"></i>
-          <span>1 Attempt per quiz to maintain legitimate campus rankings. Completed topics unlock full answer reviews.</span>
-        </div>
-
-      </section>
-
-      <!-- =========================================================================
-           VIEW 2: LOADING / AI SYNTHESIZER
-           ========================================================================= -->
-      <section id="view-loading" class="hidden max-w-md w-full mx-auto my-auto text-center space-y-5 p-8 bg-white border border-slate-200 rounded-3xl shadow-card pulse-attention">
-        <div class="w-16 h-16 rounded-2xl bg-blue-50 text-[#2563eb] flex items-center justify-center mx-auto shadow-inner">
-          <i data-lucide="sparkles" class="w-8 h-8 animate-spin"></i>
-        </div>
-        <div class="space-y-1">
-          <h3 class="text-lg font-black text-slate-900" id="loading-title">Generating Fresh Challenge...</h3>
-          <p class="text-xs text-slate-500 font-medium" id="loading-subtitle">
-            Jumbling option keys, randomizing sequence, and preparing compiler explanation traces.
-          </p>
-        </div>
-        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-          <div class="h-full bg-[#2563eb] animate-pulse" style="width: 75%;"></div>
-        </div>
-      </section>
-
-      <!-- =========================================================================
-           VIEW 3: QUIZ ARENA (60s Animated Timer, Jumbled A/B/C/D Buttons)
-           ========================================================================= -->
-      <section id="view-quiz" class="hidden max-w-3xl w-full mx-auto my-auto space-y-4">
-        
-        <!-- Status card -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <div>
-            <div class="flex items-center gap-2">
-              <span id="arena-track-badge" class="px-2.5 py-0.5 text-xs font-bold font-mono rounded-full bg-blue-50 text-[#2563eb]">
-                Topic
-              </span>
-              <span id="arena-mode-badge" class="text-xs text-slate-500 font-semibold px-2 py-0.5 rounded-full bg-slate-100">
-                Mode
-              </span>
-            </div>
-            <h2 id="arena-q-indicator" class="text-lg font-black text-slate-900 mt-0.5">
-              Question 1 of 30
-            </h2>
-          </div>
-
-          <!-- 60-Second Timer -->
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
-              <i data-lucide="clock" class="w-4 h-4 text-[#2563eb]"></i>
-              <span id="arena-timer-txt" class="font-mono font-bold text-sm text-slate-800">60s</span>
-            </div>
-            <button onclick="abandonQuiz()" class="text-xs font-semibold text-slate-400 hover:text-rose-600 transition">
-              Quit Sprint
-            </button>
-          </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-          <div id="arena-progress-bar" class="h-full bg-[#2563eb] transition-all duration-300" style="width: 3.33%;"></div>
-        </div>
-
-        <!-- Problem Snippet Card -->
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-card overflow-hidden">
-          
-          <div class="p-6 space-y-3.5">
-            <h3 id="arena-question-text" class="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-              What is the output of the following code snippet?
-            </h3>
-
-            <!-- Code Snippet Display -->
-            <div class="p-4 bg-slate-950 rounded-xl overflow-x-auto text-xs sm:text-sm font-mono text-emerald-400 border border-slate-800 shadow-inner">
-              <pre><code id="arena-code-block">// Loading code snippet...</code></pre>
-            </div>
-          </div>
-
-          <!-- 4 Options A, B, C, D (Completely distinct & jumbled) -->
-          <div class="p-6 pt-0 space-y-2.5" id="arena-options-container">
-            <!-- Dynamically populated buttons -->
-          </div>
-
-          <!-- Feedback Drawer: Reason & Direct YouTube Learning Video Link -->
-          <div id="arena-feedback-drawer" class="hidden p-6 bg-slate-50 border-t border-slate-200 space-y-4">
-            
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex items-center gap-3">
-                <div id="feedback-icon" class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shrink-0"></div>
-                <div>
-                  <h4 id="feedback-heading" class="font-extrabold text-sm sm:text-base text-slate-900">
-                    Accurate Prediction!
-                  </h4>
-                  <p id="feedback-correct-key" class="text-xs font-mono text-slate-600">
-                    Expected: Output
-                  </p>
-                </div>
-              </div>
-
-              <!-- Next Question Button -->
-              <button onclick="advanceNextQuestion()" id="arena-btn-next" class="px-5 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs sm:text-sm font-bold shadow-btn-blue flex items-center gap-1.5 active:scale-95 transition-all">
-                <span>Continue</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-              </button>
-            </div>
-
-            <!-- Deep Compiler Logic Reason -->
-            <div class="bg-white p-4 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 space-y-1.5">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1">
-                <i data-lucide="file-code" class="w-3.5 h-3.5 text-[#2563eb]"></i> Line-by-Line Compiler / Runtime Reason:
-              </span>
-              <p id="feedback-explanation-body" class="leading-relaxed text-slate-700">
-                Detailed compiler step-by-step logic.
-              </p>
-            </div>
-
-            <!-- YouTube Remediation Tutorial -->
-            <div class="p-3.5 bg-red-50/90 border border-red-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                  <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-                </div>
-                <div>
-                  <span class="text-[10px] uppercase font-bold text-red-700 tracking-wider">Targeted Concept Video</span>
-                  <p id="feedback-video-title" class="text-xs font-bold text-slate-800">
-                    Topic Tutorial
-                  </p>
-                </div>
-              </div>
-              <a id="feedback-video-anchor" href="#" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition shrink-0">
-                <span>Watch on YouTube</span>
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-              </a>
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- =========================================================================
-           VIEW 4: SCORECARD (Cumulative XP Awarded, Locked State, WhatsApp Share)
-           ========================================================================= -->
-      <section id="view-score" class="hidden max-w-2xl w-full mx-auto my-auto space-y-6">
-        
-        <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-9 shadow-card text-center space-y-6 relative overflow-hidden">
-          
-          <div class="w-16 h-16 rounded-2xl bg-blue-50 text-[#2563eb] flex items-center justify-center mx-auto shadow-inner">
-            <i data-lucide="award" class="w-9 h-9"></i>
-          </div>
-
-          <div class="space-y-1">
-            <span class="text-xs font-bold uppercase tracking-wider text-[#2563eb] font-mono" id="card-mode-subtitle">
-              Challenge Complete
-            </span>
-            <h2 class="text-3xl font-black text-slate-900" id="card-hero-greeting">
-              Well Done, Contestant!
-            </h2>
-            <p class="text-xs sm:text-sm text-slate-500 font-medium" id="card-track-title">
-              Topic
-            </p>
-          </div>
-
-          <!-- Triple Metric Display -->
-          <div class="grid grid-cols-3 gap-3 max-w-md mx-auto">
-            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span class="text-xs text-slate-400 font-medium block">Total Score</span>
-              <span class="text-2xl font-black text-slate-900 font-mono" id="score-metric-correct">0 / 30</span>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span class="text-xs text-slate-400 font-medium block">XP Earned</span>
-              <span class="text-2xl font-black text-amber-500 font-mono" id="score-metric-xp">+0 XP</span>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span class="text-xs text-slate-400 font-medium block">Accuracy</span>
-              <span class="text-2xl font-black text-[#2563eb] font-mono" id="score-metric-accuracy">0%</span>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button onclick="shareViaWhatsApp()" class="px-5 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-900 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-green-500/20 active:scale-95 transition-all">
-              <i data-lucide="share-2" class="w-4 h-4"></i>
-              <span>Share Score on WhatsApp</span>
-            </button>
-
-            <button onclick="copyScorecardText()" class="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm flex items-center gap-2 transition active:scale-95">
-              <i data-lucide="copy" class="w-4 h-4"></i>
-              <span>Copy Scorecard</span>
-            </button>
-
-            <button onclick="navigateTo('leaderboard')" class="px-5 py-3 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-btn-blue transition active:scale-95">
-              <i data-lucide="trophy" class="w-4 h-4"></i>
-              <span>View Leaderboard</span>
-            </button>
-          </div>
-
-          <!-- Answer Review Toggle -->
-          <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-            <button onclick="toggleAnswerReviewList()" class="text-[#2563eb] hover:underline flex items-center gap-1">
-              <i data-lucide="list-checks" class="w-4 h-4"></i>
-              <span id="review-btn-label">Review All Solutions &amp; Video Links</span>
-            </button>
-            <button onclick="navigateTo('home')" class="hover:text-slate-800 font-medium">
-              Back to Arena &rarr;
-            </button>
-          </div>
-
-        </div>
-
-        <!-- Collapsible Review List -->
-        <div id="scorecard-review-drawer" class="hidden space-y-3 pt-2">
-          <!-- Populated dynamically -->
-        </div>
-
-      </section>
-
-      <!-- =========================================================================
-           VIEW 5: CAMPUS LEADERBOARD (Strictly Real Authenticated Contestants by Total XP)
-           ========================================================================= -->
-      <section id="view-leaderboard" class="hidden max-w-4xl w-full mx-auto my-auto space-y-6">
-        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
-          
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-            <div>
-              <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
-                  <i data-lucide="trophy" class="w-5 h-5"></i>
-                </div>
-                <h2 class="text-xl sm:text-2xl font-black text-slate-900">
-                  Campus Verified Leaderboard
-                </h2>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                Real student scores from authenticated Daily 10 AM Drops and 30-Question Placement Sprints.
-              </p>
-            </div>
-            
-            <button onclick="navigateTo('home')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition self-start sm:self-auto">
-              Arena Tracks
-            </button>
-          </div>
-
-          <!-- Leaderboard Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs sm:text-sm">
-              <thead>
-                <tr class="text-slate-400 border-b border-slate-100 text-[11px] uppercase tracking-wider font-mono">
-                  <th class="py-3 px-3">Rank</th>
-                  <th class="py-3 px-3">Contestant</th>
-                  <th class="py-3 px-3">Email</th>
-                  <th class="py-3 px-3">Quizzes Done</th>
-                  <th class="py-3 px-3 font-bold text-amber-700">Total XP</th>
-                  <th class="py-3 px-3 text-right">Avg Accuracy</th>
-                </tr>
-              </thead>
-              <tbody id="leaderboard-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-
-        </div>
-      </section>
-
-    </main>
-
-    <!-- Footer Bar -->
-    <footer class="w-full px-8 py-4 border-t border-slate-100 bg-white/70 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <div class="flex items-center gap-6">
-        <span class="font-bold text-slate-700">QUIZ Engine</span>
-        <button onclick="openRulesModal()" class="hover:text-slate-800">Rules</button>
-        <button onclick="openHelpModal()" class="hover:text-slate-800">Help</button>
-      </div>
-      <div>
-        <span>&copy; 2026 BBIT Hackathon &bull; ED-01 Gamified Code Output Prediction Arena</span>
-      </div>
-    </footer>
-
-  </div>
-
-  <!-- AUTHENTICATION MODAL (1 EMAIL = 1 CONTESTANT ACCOUNT) -->
-  <div id="modal-auth" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
-      
-      <div class="text-center space-y-2">
-        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#2563eb] flex items-center justify-center mx-auto">
-          <i data-lucide="user-check" class="w-6 h-6"></i>
-        </div>
-        <h3 class="text-xl font-black text-slate-900">
-          Contestant Sign In / Register
-        </h3>
-        <p class="text-xs text-slate-500 font-normal">
-          One email corresponds strictly to one contestant account. All your XP across every quiz will accumulate under your account.
-        </p>
-      </div>
-
-      <form id="form-contestant-login" onsubmit="handleRegistrationSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contestant Full Name</label>
-          <input type="text" id="input-contestant-name" required placeholder="e.g. Sayan Roy" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#2563eb] text-sm text-slate-800 font-medium">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">College Email Address (Unique ID)</label>
-          <input type="email" id="input-contestant-email" required placeholder="e.g. student@bbit.edu.in" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#2563eb] text-sm text-slate-800 font-medium">
-        </div>
-
-        <button type="submit" class="w-full py-3.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-btn-blue transition active:scale-95 flex items-center justify-center gap-2">
-          <span>Enter Quiz Arena</span>
-          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+    <!-- View Tabs: Arenas vs Live Leaderboard -->
+    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
+      <div class="flex space-x-2">
+        <button id="tabArenas" onclick="switchView('arenas')" class="px-4 py-2 rounded-lg text-sm font-bold bg-yellow-400 text-slate-950 transition">
+          Challenge Arenas
         </button>
-      </form>
+        <button id="tabLeaderboard" onclick="switchView('leaderboard')" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center space-x-1.5">
+          <i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i>
+          <span>Live Leaderboard</span>
+        </button>
+      </div>
 
-      <p class="text-[11px] text-center text-slate-400">
-        Your email binds your completed runs, cumulative XP, and leaderboard standing.
-      </p>
+      <div class="text-xs text-slate-400 hidden md:block">
+        One attempt per topic • Strict lockout • Live sync
+      </div>
+    </div>
+
+    <!-- VIEW 1: TOPIC ARENAS -->
+    <section id="viewArenas" class="space-y-6">
+      
+      <!-- Announcement Banner -->
+      <div class="p-4 rounded-xl yellow-border-card bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-black text-white flex items-center space-x-2">
+            <span class="text-yellow-400">⚡</span>
+            <span>30-Question Code Sprint Arenas</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Questions and 4 distinct options are dynamically jumbled per contestant. Single attempt recorded to Supabase cloud.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-300 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+          <i data-lucide="calendar" class="w-4 h-4 text-yellow-400"></i>
+          <span>Daily 10:00 AM IST Refresh</span>
+        </div>
+      </div>
+
+      <!-- Arenas Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="arenasGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- VIEW 2: REALTIME LEADERBOARD -->
+    <section id="viewLeaderboard" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center space-x-2">
+              <i data-lucide="award" class="w-5 h-5 text-yellow-400"></i>
+              <span>Live Campus Leaderboard</span>
+            </h2>
+            <p class="text-xs text-slate-400">Powered by PostgreSQL Realtime on Supabase. Updates live across all devices.</p>
+          </div>
+          <button onclick="fetchLeaderboardFromCloud()" class="text-xs bg-slate-800 hover:bg-slate-700 text-yellow-400 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center space-x-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/60">
+                <th class="py-3 px-4">Rank</th>
+                <th class="py-3 px-4">Contestant</th>
+                <th class="py-3 px-4">Cumulative XP</th>
+                <th class="py-3 px-4">Quizzes Done</th>
+                <th class="py-3 px-4">Accuracy</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardRows" class="text-sm divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="5" class="py-8 text-center text-slate-500 text-xs">
+                  Loading rankings from Supabase...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= ACTIVE QUIZ MODAL ================= -->
+  <div id="quizModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-slate-900 border-2 border-yellow-400 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Quiz Header -->
+      <div class="bg-slate-950 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <span id="quizTopicTitle" class="text-xs font-black uppercase tracking-wider text-yellow-400">TOPIC</span>
+          <div class="text-sm font-bold text-white flex items-center space-x-2">
+            <span id="quizProgressLabel">Question 1 / 30</span>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div id="quizTimer" class="font-mono text-sm font-bold text-yellow-400 bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">
+            00:45
+          </div>
+          <button onclick="closeQuizModal()" class="text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quiz Body: Question & Code Block -->
+      <div class="p-5 overflow-y-auto flex-grow space-y-4 custom-scrollbar">
+        
+        <p id="quizQuestionText" class="text-sm font-semibold text-slate-200 leading-relaxed"></p>
+
+        <!-- Code Block Window -->
+        <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 font-mono text-xs text-emerald-400 overflow-x-auto relative">
+          <div class="flex space-x-1.5 absolute top-3 right-3 opacity-60">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+          </div>
+          <pre id="quizCodeSnippet" class="whitespace-pre pt-2"></pre>
+        </div>
+
+        <!-- 4 Distinct Options -->
+        <div id="quizOptionsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <!-- Populated dynamically with Fisher-Yates shuffle -->
+        </div>
+
+      </div>
+
+      <!-- Quiz Footer Progress Bar -->
+      <div class="bg-slate-950 px-5 py-3 border-t border-slate-800 flex items-center justify-between">
+        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mr-4">
+          <div id="quizProgressBar" class="bg-yellow-400 h-full transition-all duration-300" style="width: 3.3%"></div>
+        </div>
+        <span id="quizStreakIndicator" class="text-xs font-bold text-yellow-400 whitespace-nowrap">🔥 0 Streak</span>
+      </div>
 
     </div>
   </div>
 
-  <!-- CONTEST RULES MODAL -->
-  <div id="modal-info" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-4">
-      <div class="flex items-center justify-between border-b pb-3">
-        <h3 class="font-extrabold text-slate-900 text-lg" id="modal-info-title">Contest Rules</h3>
-        <button onclick="closeInfoModal()" class="text-slate-400 hover:text-slate-600">
+  <!-- ================= REVIEW SOLUTION DRAWER ================= -->
+  <div id="reviewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-slate-950 px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+            <span>Attempt Review & Compiler Execution Breakdown</span>
+          </h3>
+          <p id="reviewTopicSubtitle" class="text-[11px] text-slate-400">Detailed answers and video guides</p>
+        </div>
+        <button onclick="closeReviewModal()" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div id="modal-info-content" class="text-xs sm:text-sm text-slate-600 space-y-3 leading-relaxed">
-        <!-- Injected dynamically -->
+
+      <div id="reviewContentList" class="p-5 overflow-y-auto space-y-4 flex-grow custom-scrollbar">
+        <!-- Populated dynamically -->
       </div>
-      <button onclick="closeInfoModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs">
-        Close
-      </button>
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION -->
-  <div id="toast-pill" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
-    <div class="bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2">
-      <i data-lucide="info" class="w-4 h-4 text-[#2563eb]"></i>
-      <span id="toast-text-body">Notification message</span>
+  <!-- ================= AUTH MODAL (1 Email = 1 ID) ================= -->
+  <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-slate-900 border border-yellow-400 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i data-lucide="user-check" class="w-5 h-5 text-yellow-400"></i>
+          <span>Contestant Sign In</span>
+        </h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <p class="text-xs text-slate-400 mb-4">
+        Enter your official handle and email. Exactly 1 ID per email is enforced. Your cumulative XP is saved in the Supabase PostgreSQL database.
+      </p>
+
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Contestant Name / Handle</label>
+          <input type="text" id="authNameInput" required placeholder="e.g. Contestant Name" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Official Email Address</label>
+          <input type="email" id="authEmailInput" required placeholder="e.g. contestant@bbit.edu.in" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400">
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-yellow-400 hover:bg-yellow-500 text-slate-950 font-bold text-sm rounded-lg transition">
+          Confirm Contestant Profile
+        </button>
+      </form>
     </div>
   </div>
 
+  <!-- Footer -->
+  <footer class="w-full bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    BBIT Hackathon 2026 • Live Supabase PostgreSQL Connection Active
+  </footer>
+
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
-    /* =========================================================================
-       1. WEB AUDIO PROCEDURAL SYNTHESIZER
-       ========================================================================= */
-    class ProceduralAudioEngine {
-      constructor() {
-        this.ctx = null;
-        this.enabled = true;
-      }
-      ensureContext() {
-        if (!this.ctx) {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) this.ctx = new AudioCtx();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
-      }
-      playCorrectSound() {
-        if (!this.enabled) return;
-        this.ensureContext();
-        if (!this.ctx) return;
-        try {
-          const freqs = [1046.50, 1318.51, 1567.98]; // C6 -> E6 -> G6 major chord
-          freqs.forEach((freq, idx) => {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.07);
-            gain.gain.setValueAtTime(0.18, this.ctx.currentTime + idx * 0.07);
-            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + idx * 0.07 + 0.3);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(this.ctx.currentTime + idx * 0.07);
-            osc.stop(this.ctx.currentTime + idx * 0.07 + 0.3);
-          });
-        } catch (e) {}
-      }
-      playWrongSound() {
-        if (!this.enabled) return;
-        this.ensureContext();
-        if (!this.ctx) return;
-        try {
-          // Low descending buzz
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(185, this.ctx.currentTime);
-          osc.frequency.linearRampToValueAtTime(115, this.ctx.currentTime + 0.28);
-          gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.28);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(this.ctx.currentTime);
-          osc.stop(this.ctx.currentTime + 0.28);
-        } catch (e) {}
-      }
-      playTick() {
-        if (!this.enabled) return;
-        this.ensureContext();
-        if (!this.ctx) return;
-        try {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(750, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.03);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(this.ctx.currentTime);
-          osc.stop(this.ctx.currentTime + 0.03);
-        } catch (e) {}
-      }
-    }
-    const soundEngine = new ProceduralAudioEngine();
+    /* 1. SUPABASE CLIENT INITIALIZATION */
+    const SUPABASE_URL = "[https://uxhrzwsihosycbxgarwi.supabase.co](https://uxhrzwsihosycbxgarwi.supabase.co)";
+    const SUPABASE_ANON_KEY = "sb_publishable_3tOn0MyPxn0I2e-IGo-LcA_xwSIL_fO";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    function toggleAudio() {
-      soundEngine.enabled = !soundEngine.enabled;
-      const icon = document.getElementById('sound-icon');
-      if (soundEngine.enabled) {
-        icon.setAttribute('data-lucide', 'volume-2');
-        triggerToast("Audio sound effects enabled");
-      } else {
-        icon.setAttribute('data-lucide', 'volume-x');
-        triggerToast("Audio sound effects muted");
-      }
-      lucide.createIcons();
-    }
-
-    /* =========================================================================
-       2. USER PROFILE, 1-EMAIL = 1-ACCOUNT & ATTEMPT LOCKOUT
-       ========================================================================= */
-    const AUTH_STORAGE_KEY = 'bbit_contestant_user';
-    const PROFILES_STORAGE_KEY = 'bbit_all_registered_profiles';
-    const QUIZ_HISTORY_KEY = 'bbit_user_quiz_history';
-
-    let currentContestant = null;
-
-    function initContestantSession() {
-      try {
-        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (stored) {
-          currentContestant = JSON.parse(stored);
-          renderUserProfilePill();
-          hideAuthModal();
-        } else {
-          showAuthModal();
-        }
-      } catch (e) {
-        showAuthModal();
-      }
-    }
-
-    function showAuthModal() {
-      document.getElementById('modal-auth').classList.remove('hidden');
-    }
-
-    function hideAuthModal() {
-      document.getElementById('modal-auth').classList.add('hidden');
-    }
-
-    function handleRegistrationSubmit(e) {
-      e.preventDefault();
-      const name = document.getElementById('input-contestant-name').value.trim();
-      const email = document.getElementById('input-contestant-email').value.trim().toLowerCase();
-
-      if (!name || !email) {
-        triggerToast("Please provide both name and email.");
-        return;
-      }
-
-      // Check existing accounts
-      let allProfiles = {};
-      try {
-        allProfiles = JSON.parse(localStorage.getItem(PROFILES_STORAGE_KEY) || '{}');
-      } catch (err) {
-        allProfiles = {};
-      }
-
-      if (!allProfiles[email]) {
-        allProfiles[email] = {
-          name: name,
-          email: email,
-          avatarInitials: name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CX',
-          totalXP: 0,
-          quizzesAttempted: 0,
-          totalCorrect: 0,
-          totalQuestions: 0,
-          registeredAt: new Date().toISOString()
-        };
-      } else {
-        // Existing user logging back in: update name if changed
-        allProfiles[email].name = name;
-        allProfiles[email].avatarInitials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CX';
-      }
-
-      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(allProfiles));
-      currentContestant = allProfiles[email];
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentContestant));
-
-      renderUserProfilePill();
-      hideAuthModal();
-      renderTopicCards();
-      triggerToast(`Welcome ${currentContestant.name}! XP will accumulate on this account.`);
-    }
-
-    function switchOrLogoutContestant() {
-      if (confirm(`Currently signed in as ${currentContestant.name} (${currentContestant.email}). Would you like to switch accounts?`)) {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-        currentContestant = null;
-        renderUserProfilePill();
-        showAuthModal();
-      }
-    }
-
-    function renderUserProfilePill() {
-      const container = document.getElementById('user-profile-badge');
-      if (currentContestant) {
-        // Fetch up-to-date total XP
-        let allProfiles = {};
-        try {
-          allProfiles = JSON.parse(localStorage.getItem(PROFILES_STORAGE_KEY) || '{}');
-        } catch (e) {}
-        const profile = allProfiles[currentContestant.email] || currentContestant;
-
-        container.innerHTML = `
-          <div class="flex items-center gap-2 p-1 pl-2 pr-2.5 rounded-full bg-slate-100 hover:bg-slate-200 transition cursor-pointer select-none border border-slate-200" onclick="switchOrLogoutContestant()">
-            <div class="w-7 h-7 rounded-full bg-[#2563eb] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-              ${profile.avatarInitials}
-            </div>
-            <div class="flex flex-col text-left leading-tight hidden sm:flex">
-              <span class="text-xs font-bold text-slate-800">${escapeHtml(profile.name)}</span>
-              <span class="text-[10px] font-mono font-bold text-amber-600">${profile.totalXP || 0} XP</span>
-            </div>
-            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
-          </div>
-        `;
-      } else {
-        container.innerHTML = `
-          <button onclick="showAuthModal()" class="px-3.5 py-1.5 rounded-xl bg-[#2563eb] text-white text-xs font-bold shadow-btn-blue hover:bg-[#1d4ed8] transition">
-            Sign In
-          </button>
-        `;
-      }
-      lucide.createIcons();
-    }
-
-    function getContestantHistory(email) {
-      try {
-        const hist = JSON.parse(localStorage.getItem(QUIZ_HISTORY_KEY) || '{}');
-        return hist[email] || {};
-      } catch (e) {
-        return {};
-      }
-    }
-
-    function saveContestantQuizResult(email, quizKey, resultData) {
-      try {
-        let hist = JSON.parse(localStorage.getItem(QUIZ_HISTORY_KEY) || '{}');
-        if (!hist[email]) hist[email] = {};
-        hist[email][quizKey] = resultData;
-        localStorage.setItem(QUIZ_HISTORY_KEY, JSON.stringify(hist));
-
-        // Add cumulative XP to user profile
-        let allProfiles = JSON.parse(localStorage.getItem(PROFILES_STORAGE_KEY) || '{}');
-        if (allProfiles[email]) {
-          allProfiles[email].totalXP = (allProfiles[email].totalXP || 0) + resultData.xpEarned;
-          allProfiles[email].quizzesAttempted = (allProfiles[email].quizzesAttempted || 0) + 1;
-          allProfiles[email].totalCorrect = (allProfiles[email].totalCorrect || 0) + resultData.correctCount;
-          allProfiles[email].totalQuestions = (allProfiles[email].totalQuestions || 0) + resultData.totalQuestions;
-          localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(allProfiles));
-          currentContestant = allProfiles[email];
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentContestant));
-        }
-      } catch (e) {
-        console.error("Error saving quiz history:", e);
-      }
-    }
-
-    /* =========================================================================
-       3. 10:00 AM IST DAILY SEED & COUNTDOWN TICKER
-       ========================================================================= */
-    function getDaily10AMEpoch() {
-      const now = new Date();
-      // IST is UTC + 5:30 (330 mins)
-      const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (330 * 60000));
-      const istHours = istTime.getHours();
-      
-      const cycleDate = new Date(istTime);
-      if (istHours < 10) {
-        cycleDate.setDate(cycleDate.getDate() - 1);
-      }
-      
-      const yyyy = cycleDate.getFullYear();
-      const mm = String(cycleDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(cycleDate.getDate()).padStart(2, '0');
-      
-      return {
-        epochId: `daily_10am_${yyyy}-${mm}-${dd}`,
-        dateString: `${yyyy}-${mm}-${dd}`,
-        displayDate: cycleDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      };
-    }
-
-    function update10AMCountdownTicker() {
-      const now = new Date();
-      const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (330 * 60000));
-      
-      const next10AM = new Date(istTime);
-      if (istTime.getHours() >= 10) {
-        next10AM.setDate(next10AM.getDate() + 1);
-      }
-      next10AM.setHours(10, 0, 0, 0);
-
-      const diffMs = next10AM.getTime() - istTime.getTime();
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-      const formatted = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-      
-      const countdownEl = document.getElementById('header-drop-countdown');
-      if (countdownEl) {
-        countdownEl.innerText = formatted;
-      }
-
-      // Check if user already completed today's daily quiz
-      if (currentContestant) {
-        const cycle = getDaily10AMEpoch();
-        const history = getContestantHistory(currentContestant.email);
-        const dailyBtn = document.getElementById('header-daily-quiz-btn');
-        const pillStatus = document.getElementById('daily-pill-status');
-        
-        if (history[cycle.epochId]) {
-          if (pillStatus) pillStatus.innerText = "Done";
-          if (dailyBtn) {
-            dailyBtn.className = "relative flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 transition-all shadow-sm active:scale-95 group";
-          }
-        } else {
-          if (pillStatus) pillStatus.innerText = "5 Qs";
-          if (dailyBtn) {
-            dailyBtn.className = "relative flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100/90 text-amber-900 transition-all shadow-sm active:scale-95 group";
-          }
-        }
-      }
-    }
-    setInterval(update10AMCountdownTicker, 1000);
-
-    /* =========================================================================
-       4. EXPANDED QUESTION REPOSITORY: 30 HIGH-YIELD QUESTIONS PER TOPIC
-          (Every question guaranteed to have 4 distinct, plausible options)
-       ========================================================================= */
-    const TOPIC_PRESETS = {
-      c_lang: {
-        title: "C Pointers & Memory Allocation",
-        icon: "cpu",
-        color: "blue",
-        questions: [
-          {
-            q: "What is the output of this C pointer arithmetic expression?",
-            code: `#include <stdio.h>\nint main() {\n    int arr[] = {10, 20, 30, 40};\n    int *p = arr;\n    int val1 = *p++;\n    int val2 = *++p;\n    printf("%d, %d, %d", val1, val2, *p);\n    return 0;\n}`,
-            options: ["10, 30, 30", "10, 20, 20", "20, 30, 40", "10, 30, 40"],
-            correct: 0,
-            reason: "*p++ evaluates to *p (10) before incrementing p to index 1. Then *++p increments p to index 2 first, dereferencing to 30. *p remains 30.",
-            ytTitle: "C Pointer Arithmetic & Dereference Precedence",
-            ytQuery: "https://www.youtube.com/results?search_query=C+pointer+arithmetic+precedence+operator+explained"
-          },
-          {
-            q: "What does sizeof output when an array is passed into a function?",
-            code: `#include <stdio.h>\nvoid inspect(int arr[]) {\n    printf("%zu ", sizeof(arr));\n}\nint main() {\n    int data[5] = {1, 2, 3, 4, 5};\n    printf("%zu ", sizeof(data));\n    inspect(data);\n    return 0;\n}`,
-            options: ["20 8", "20 20", "5 5", "20 4"],
-            correct: 0,
-            reason: "In main(), sizeof(data) returns total array bytes (5 * 4 = 20). In inspect(int arr[]), the array decays into a pointer (int*), which is 8 bytes on 64-bit systems.",
-            ytTitle: "Why Arrays Decay to Pointers in C Functions",
-            ytQuery: "https://www.youtube.com/results?search_query=C+array+decay+to+pointer+sizeof"
-          },
-          {
-            q: "What is the result of modifying a string literal in C?",
-            code: `#include <stdio.h>\nint main() {\n    char str[] = "BBIT";\n    char *ptr = "GATE";\n    str[0] = 'X';\n    printf("%c%s", str[0], ptr);\n    return 0;\n}`,
-            options: ["XGATE", "BBITGATE", "Segmentation Fault", "Compilation Error"],
-            correct: 0,
-            reason: "str is an array on the stack, so modifying str[0] is valid. ptr points to read-only memory, but since we didn't write to ptr[0], it prints XGATE safely.",
-            ytTitle: "C String Literals vs Stack Arrays Memory",
-            ytQuery: "https://www.youtube.com/results?search_query=C+string+literals+vs+char+arrays+memory"
-          },
-          {
-            q: "Evaluate the post and pre-decrement pointer expressions:",
-            code: `#include <stdio.h>\nint main() {\n    int a[] = {1, 2, 3, 4, 5};\n    int *p = a + 3;\n    printf("%d ", *(p--));\n    printf("%d", *p);\n    return 0;\n}`,
-            options: ["4 3", "4 4", "3 3", "3 4"],
-            correct: 0,
-            reason: "p points to a[3] (4). *(p--) dereferences 4 first, then shifts p back to index 2 (value 3).",
-            ytTitle: "Pointer Post Decrement vs Pre Decrement in C",
-            ytQuery: "https://www.youtube.com/results?search_query=pointer+increment+decrement+in+c"
-          },
-          {
-            q: "What is printed by pointer subtraction in C?",
-            code: `#include <stdio.h>\nint main() {\n    int arr[6] = {10, 20, 30, 40, 50, 60};\n    int *p1 = &arr[1];\n    int *p2 = &arr[5];\n    printf("%td", p2 - p1);\n    return 0;\n}`,
-            options: ["4", "16", "5", "32"],
-            correct: 0,
-            reason: "Subtracting two pointers of the same type yields the number of elements between them: 5 - 1 = 4 (ptrdiff_t).",
-            ytTitle: "Pointer Subtraction & Distance in C",
-            ytQuery: "https://www.youtube.com/results?search_query=pointer+subtraction+in+c+arrays"
-          },
-          {
-            q: "What is the difference between const int * and int * const?",
-            code: `#include <stdio.h>\nint main() {\n    int x = 10, y = 20;\n    const int *ptr = &x;\n    ptr = &y;\n    printf("%d", *ptr);\n    return 0;\n}`,
-            options: ["20", "10", "Compilation Error", "Undefined behavior"],
-            correct: 0,
-            reason: "const int * indicates the target integer value is constant, but the pointer itself can freely be reassigned to &y.",
-            ytTitle: "Constant Pointers vs Pointer to Constant in C",
-            ytQuery: "https://www.youtube.com/results?search_query=const+pointer+vs+pointer+to+const+in+C"
-          },
-          {
-            q: "What will this double pointer modification print?",
-            code: `#include <stdio.h>\nint main() {\n    int val = 42;\n    int *p = &val;\n    int **pp = &p;\n    **pp += 8;\n    printf("%d", val);\n    return 0;\n}`,
-            options: ["50", "42", "Compilation Error", "Address of val"],
-            correct: 0,
-            reason: "**pp double dereferences to val directly. Adding 8 yields 42 + 8 = 50.",
-            ytTitle: "Double Pointers in C Explained",
-            ytQuery: "https://www.youtube.com/results?search_query=double+pointers+in+C+explained"
-          },
-          {
-            q: "What is the best practice after calling free() on a pointer?",
-            code: `#include <stdio.h>\n#include <stdlib.h>\nint main() {\n    int *p = (int*)malloc(sizeof(int));\n    *p = 100;\n    free(p);\n    p = NULL;\n    printf("%s", p == NULL ? "Safe" : "Dangling");\n    return 0;\n}`,
-            options: ["Safe", "Dangling", "Compilation Error", "Segmentation Fault"],
-            correct: 0,
-            reason: "Setting p = NULL immediately after free(p) eliminates the risk of accessing a dangling pointer.",
-            ytTitle: "Dangling Pointers and Safe Memory Deallocation in C",
-            ytQuery: "https://www.youtube.com/results?search_query=dangling+pointers+and+free+in+c"
-          },
-          {
-            q: "What is the output of negative indexing on pointers?",
-            code: `#include <stdio.h>\nint main() {\n    int arr[] = {100, 200, 300, 400};\n    int *p = &arr[2];\n    printf("%d", p[-1]);\n    return 0;\n}`,
-            options: ["200", "100", "300", "400"],
-            correct: 0,
-            reason: "p[-1] translates to *(p - 1). Since p points to arr[2] (300), p - 1 points to arr[1] (200).",
-            ytTitle: "Negative Array Indexing with Pointers in C",
-            ytQuery: "https://www.youtube.com/results?search_query=negative+pointer+subscript+in+C"
-          },
-          {
-            q: "What does this pointer comparison evaluate to?",
-            code: `#include <stdio.h>\nint main() {\n    int arr[2] = {5, 10};\n    printf("%d", (&arr[1] > &arr[0]));\n    return 0;\n}`,
-            options: ["1", "0", "Undefined", "Compilation Error"],
-            correct: 0,
-            reason: "Pointer comparisons across elements within the same array are well-defined: higher elements reside at greater memory addresses.",
-            ytTitle: "Pointer Relational Comparisons in C",
-            ytQuery: "https://www.youtube.com/results?search_query=pointer+comparisons+rules+in+C"
-          },
-          {
-            q: "What does this function pointer invocation output?",
-            code: `#include <stdio.h>\nint square(int x) { return x * x; }\nint main() {\n    int (*fp)(int) = square;\n    printf("%d", (*fp)(5));\n    return 0;\n}`,
-            options: ["25", "5", "Memory Address", "Compilation Error"],
-            correct: 0,
-            reason: "fp points to square. Invoking (*fp)(5) executes 5 * 5 = 25.",
-            ytTitle: "Function Pointers in C Tutorial",
-            ytQuery: "https://www.youtube.com/results?search_query=function+pointers+in+C+tutorial"
-          },
-          {
-            q: "What is the memory size of a union containing double, int, and char array?",
-            code: `#include <stdio.h>\nunion Data {\n    int i;\n    double d;\n    char c[4];\n};\nint main() {\n    printf("%zu", sizeof(union Data));\n    return 0;\n}`,
-            options: ["8", "16", "12", "4"],
-            correct: 0,
-            reason: "A union allocates memory equal to its largest member. sizeof(double) is 8 bytes.",
-            ytTitle: "C Unions Memory Allocation and Size",
-            ytQuery: "https://www.youtube.com/results?search_query=unions+memory+allocation+in+c"
-          },
-          {
-            q: "What does this void pointer cast print?",
-            code: `#include <stdio.h>\nint main() {\n    char ch = 'A';\n    void *vp = &ch;\n    printf("%c", *(char*)vp);\n    return 0;\n}`,
-            options: ["A", "65", "Segmentation Fault", "Compilation Error"],
-            correct: 0,
-            reason: "A void pointer cannot be dereferenced directly without casting. Casting to (char*) allows correct dereferencing to 'A'.",
-            ytTitle: "Void Pointers and Type Casting in C",
-            ytQuery: "https://www.youtube.com/results?search_query=void+pointers+in+C+programming"
-          },
-          {
-            q: "What is the value of arr vs &arr in array pointer arithmetic?",
-            code: `#include <stdio.h>\nint main() {\n    int a[5] = {1, 2, 3, 4, 5};\n    int *p = (int*)(&a + 1);\n    printf("%d", *(p - 1));\n    return 0;\n}`,
-            options: ["5", "1", "15", "4"],
-            correct: 0,
-            reason: "&a + 1 increments past the entire 5-element array. Casting back to int* and subtracting 1 points to a[4] (5).",
-            ytTitle: "Difference Between a and &a in C Arrays",
-            ytQuery: "https://www.youtube.com/results?search_query=difference+between+arr+and+address+of+arr+in+c"
-          },
-          {
-            q: "What does calloc initialize newly allocated memory to?",
-            code: `#include <stdio.h>\n#include <stdlib.h>\nint main() {\n    int *p = (int*)calloc(2, sizeof(int));\n    printf("%d %d", p[0], p[1]);\n    free(p);\n    return 0;\n}`,
-            options: ["0 0", "Garbage Garbage", "NULL NULL", "1 1"],
-            correct: 0,
-            reason: "Unlike malloc, calloc zeroes out all allocated memory bytes upon allocation.",
-            ytTitle: "malloc vs calloc in C Memory Management",
-            ytQuery: "https://www.youtube.com/results?search_query=malloc+vs+calloc+in+c"
-          },
-          {
-            q: "What happens when allocating 0 bytes via malloc in C?",
-            code: `#include <stdio.h>\n#include <stdlib.h>\nint main() {\n    void *p = malloc(0);\n    printf("%s", (p != NULL) ? "NonNull" : "Null");\n    free(p);\n    return 0;\n}`,
-            options: ["NonNull", "Segmentation Fault", "Crash", "Compilation Error"],
-            correct: 0,
-            reason: "Under standard POSIX and glibc implementations, malloc(0) returns either NULL or a non-null distinct pointer that can be passed safely to free().",
-            ytTitle: "malloc(0) Behavior in C",
-            ytQuery: "https://www.youtube.com/results?search_query=malloc+0+behavior+in+C"
-          },
-          {
-            q: "What is printed by this structure pointer member offset?",
-            code: `#include <stdio.h>\nstruct Point { int x; int y; };\nint main() {\n    struct Point p = {10, 20};\n    int *ptr = (int*)&p;\n    printf("%d", *(ptr + 1));\n    return 0;\n}`,
-            options: ["20", "10", "30", "Undefined"],
-            correct: 0,
-            reason: "struct Point fields are placed contiguously. *(ptr + 1) accesses the second 4-byte integer member y, which is 20.",
-            ytTitle: "Struct Memory Layout and Pointers in C",
-            ytQuery: "https://www.youtube.com/results?search_query=struct+memory+layout+and+pointers+in+C"
-          },
-          {
-            q: "What does pointer increment inside printf format string evaluate to?",
-            code: `#include <stdio.h>\nint main() {\n    char *s = "GATE2026";\n    printf("%s", s + 4);\n    return 0;\n}`,
-            options: ["2026", "GATE", "E2026", "TE2026"],
-            correct: 0,
-            reason: "s + 4 offsets 4 characters past 'G','A','T','E', printing the remaining substring '2026'.",
-            ytTitle: "String Pointer Offsets in C",
-            ytQuery: "https://www.youtube.com/results?search_query=string+pointer+offset+in+c"
-          },
-          {
-            q: "What does this pointer aliasing modification yield?",
-            code: `#include <stdio.h>\nint main() {\n    int a = 15;\n    int *p1 = &a;\n    int *p2 = p1;\n    *p2 += 10;\n    printf("%d", *p1);\n    return 0;\n}`,
-            options: ["25", "15", "10", "35"],
-            correct: 0,
-            reason: "Both p1 and p2 reference the exact same memory location of a. Modifying *p2 updates a to 25.",
-            ytTitle: "Pointer Aliasing in C",
-            ytQuery: "https://www.youtube.com/results?search_query=pointer+aliasing+in+c"
-          },
-          {
-            q: "What is the output of pointer arithmetic with pre-increment in while loop?",
-            code: `#include <stdio.h>\nint main() {\n    char str[] = "BBIT";\n    char *p = str;\n    while (*p) {\n        printf("%c", *p++);\n    }\n    return 0;\n}`,
-            options: ["BBIT", "BBI", "BIT", "Infinite Loop"],
-            correct: 0,
-            reason: "The loop traverses until the null terminator '\\0', printing each character: 'B','B','I','T'.",
-            ytTitle: "Traversing Strings with Pointers in C",
-            ytQuery: "https://www.youtube.com/results?search_query=traversing+strings+with+pointers+c"
-          },
-          {
-            q: "What does realloc do when given a NULL pointer as its first argument?",
-            code: `#include <stdio.h>\n#include <stdlib.h>\nint main() {\n    int *p = (int*)realloc(NULL, sizeof(int));\n    *p = 77;\n    printf("%d", *p);\n    free(p);\n    return 0;\n}`,
-            options: ["77", "Segmentation Fault", "0", "Compilation Error"],
-            correct: 0,
-            reason: "When realloc(NULL, size) is called, it behaves exactly like malloc(size).",
-            ytTitle: "realloc Function Edge Cases in C",
-            ytQuery: "https://www.youtube.com/results?search_query=realloc+in+c+with+null+pointer"
-          },
-          {
-            q: "What is printed by this constant pointer reassignment error?",
-            code: `// What does this C code produce at compile/run time?\nint main() {\n    int val = 5;\n    int *const ptr = &val;\n    ptr++;\n    return 0;\n}`,
-            options: ["Compilation Error", "Runtime Crash", "Output 6", "Undefined Behavior"],
-            correct: 0,
-            reason: "int *const ptr is a constant pointer; attempting to increment or reassign the pointer variable itself triggers a compiler error.",
-            ytTitle: "Const Pointers in C",
-            ytQuery: "https://www.youtube.com/results?search_query=const+pointers+compiler+error+in+C"
-          },
-          {
-            q: "What does this pointer casting across integer types print on little-endian systems?",
-            code: `#include <stdio.h>\nint main() {\n    unsigned int x = 1;\n    char *c = (char*)&x;\n    printf("%d", (int)*c);\n    return 0;\n}`,
-            options: ["1", "0", "255", "Segmentation Fault"],
-            correct: 0,
-            reason: "On little-endian architectures (x86/ARM), the least significant byte (1) is stored at the lowest memory address.",
-            ytTitle: "Endianness in C Programming Explained",
-            ytQuery: "https://www.youtube.com/results?search_query=endianness+little+endian+c+explained"
-          },
-          {
-            q: "What will this multidimensional array pointer dereference output?",
-            code: `#include <stdio.h>\nint main() {\n    int m[2][3] = {{1, 2, 3}, {4, 5, 6}};\n    printf("%d", *(*(m + 1) + 2));\n    return 0;\n}`,
-            options: ["6", "5", "4", "3"],
-            correct: 0,
-            reason: "*(m + 1) evaluates to the second row &m[1][0]. Adding 2 shifts to index 2 (value 6).",
-            ytTitle: "2D Arrays and Pointer Arithmetic in C",
-            ytQuery: "https://www.youtube.com/results?search_query=2d+array+pointer+arithmetic+in+c"
-          },
-          {
-            q: "What is printed by this recursive pointer traversal?",
-            code: `#include <stdio.h>\nvoid fun(char *s) {\n    if (*s) {\n        fun(s + 1);\n        printf("%c", *s);\n    }\n}\nint main() {\n    fun("CAT");\n    return 0;\n}`,
-            options: ["TAC", "CAT", "T", "C"],
-            correct: 0,
-            reason: "The recursive function calls itself down to the null terminator before unwinding, printing characters in reverse: 'T', 'A', 'C'.",
-            ytTitle: "Reverse String Using Recursion and Pointers in C",
-            ytQuery: "https://www.youtube.com/results?search_query=reverse+string+recursion+pointers+in+c"
-          },
-          {
-            q: "What is the memory size of an empty struct in standard C?",
-            code: `#include <stdio.h>\nstruct Empty {};\nint main() {\n    // Under standard GNU C extensions:\n    printf("%zu", sizeof(struct Empty));\n    return 0;\n}`,
-            options: ["0", "1", "4", "8"],
-            correct: 0,
-            reason: "In GCC (GNU C extensions), sizeof(struct Empty) is 0 bytes, whereas in C++ it is 1 byte.",
-            ytTitle: "Empty Struct Size in C vs C++",
-            ytQuery: "https://www.youtube.com/results?search_query=empty+struct+sizeof+in+c+vs+cpp"
-          },
-          {
-            q: "What does this pointer bitwise operation evaluate to?",
-            code: `#include <stdio.h>\n#include <stdint.h>\nint main() {\n    int a = 16;\n    int *p = &a;\n    uintptr_t addr = (uintptr_t)p;\n    printf("%s", (addr & 3) == 0 ? "Aligned" : "Unaligned");\n    return 0;\n}`,
-            options: ["Aligned", "Unaligned", "Error", "Crash"],
-            correct: 0,
-            reason: "Standard 4-byte integers on modern architectures are 4-byte aligned (addresses end in 00 binary, so addr & 3 == 0).",
-            ytTitle: "Memory Alignment and Address Bitmasking in C",
-            ytQuery: "https://www.youtube.com/results?search_query=memory+alignment+data+types+in+c"
-          },
-          {
-            q: "What does this array of pointers dereference print?",
-            code: `#include <stdio.h>\nint main() {\n    char *arr[] = {"Alpha", "Beta", "Gamma"};\n    char **ptr = arr;\n    printf("%c", *(*(ptr + 1) + 2));\n    return 0;\n}`,
-            options: ["t", "e", "B", "a"],
-            correct: 0,
-            reason: "ptr + 1 points to 'Beta'. *(ptr + 1) + 2 points to index 2 ('t'). Dereferencing yields 't'.",
-            ytTitle: "Array of Pointers vs Pointer to Pointer in C",
-            ytQuery: "https://www.youtube.com/results?search_query=array+of+pointers+c+programming"
-          },
-          {
-            q: "What does this pointer difference across different memory allocations cause?",
-            code: `#include <stdio.h>\n#include <stdlib.h>\nint main() {\n    int *p1 = (int*)malloc(sizeof(int));\n    int *p2 = (int*)malloc(sizeof(int));\n    // Subtracting pointers from unrelated allocations is:\n    printf("UB");\n    free(p1); free(p2);\n    return 0;\n}`,
-            options: ["UB", "0", "1", "Compilation Error"],
-            correct: 0,
-            reason: "In ISO C, subtracting pointers that do not point into elements of the same array object is strictly Undefined Behavior (UB).",
-            ytTitle: "Undefined Behavior in C Pointer Subtraction",
-            ytQuery: "https://www.youtube.com/results?search_query=undefined+behavior+c+pointer+subtraction"
-          },
-          {
-            q: "What will this volatile pointer read demonstrate?",
-            code: `#include <stdio.h>\nint main() {\n    int x = 100;\n    volatile int *vp = &x;\n    *vp = 200;\n    printf("%d", *vp);\n    return 0;\n}`,
-            options: ["200", "100", "0", "Compilation Error"],
-            correct: 0,
-            reason: "The volatile qualifier informs the compiler never to cache reads in registers and always fetch the current value from memory (200).",
-            ytTitle: "Volatile Keyword in C Explained",
-            ytQuery: "https://www.youtube.com/results?search_query=volatile+keyword+in+c+explained"
-          }
-        ]
-      },
-
-      java_lang: {
-        title: "Java OOP & Polymorphism",
-        icon: "coffee",
-        color: "amber",
-        questions: [
-          {
-            q: "What is the output regarding static method hiding vs dynamic dispatch in Java?",
-            code: `class Parent {\n    static void display() { System.out.print("P_STATIC "); }\n    void render() { System.out.print("P_VIRTUAL "); }\n}\nclass Child extends Parent {\n    static void display() { System.out.print("C_STATIC "); }\n    void render() { System.out.print("C_VIRTUAL "); }\n}\npublic class Main {\n    public static void main(String[] args) {\n        Parent obj = new Child();\n        obj.display();\n        obj.render();\n    }\n}`,
-            options: ["P_STATIC C_VIRTUAL ", "C_STATIC C_VIRTUAL ", "P_STATIC P_VIRTUAL ", "Compilation Error"],
-            correct: 0,
-            reason: "Static methods are resolved at compile-time by reference type (Parent). Instance methods resolve at runtime via virtual method tables.",
-            ytTitle: "Method Hiding vs Method Overriding in Java",
-            ytQuery: "https://www.youtube.com/results?search_query=java+method+hiding+vs+overriding+polymorphism"
-          },
-          {
-            q: "What prints when calling an overridable method inside a constructor?",
-            code: `class Base {\n    int x = 10;\n    Base() { print(); }\n    void print() { System.out.print(x + " "); }\n}\nclass Derived extends Base {\n    int x = 20;\n    void print() { System.out.print(x + " "); }\n}\npublic class Main {\n    public static void main(String[] args) {\n        new Derived();\n    }\n}`,
-            options: ["0 ", "10 ", "20 ", "NullPointerException"],
-            correct: 0,
-            reason: "Base constructor calls Derived's overridden print() before Derived's field initialization runs; primitive int x is still default 0.",
-            ytTitle: "Never Call Overridable Methods in Java Constructors",
-            ytQuery: "https://www.youtube.com/results?search_query=calling+overridable+methods+in+constructor+java"
-          },
-          {
-            q: "What does this string pool comparison evaluate to?",
-            code: `public class Main {\n    public static void main(String[] args) {\n        String s1 = "BBIT";\n        String s2 = new String("BBIT");\n        String s3 = s2.intern();\n        System.out.println((s1 == s2) + " " + (s1 == s3));\n    }\n}`,
-            options: ["false true", "true true", "false false", "true false"],
-            correct: 0,
-            reason: "s2 is created on the heap, so s1 == s2 is false. s2.intern() returns the string pool reference, matching s1.",
-            ytTitle: "Java String Pool and intern() Explained",
-            ytQuery: "https://www.youtube.com/results?search_query=java+string+pool+intern+method+explained"
-          },
-          {
-            q: "What is printed by finally when return occurs in try?",
-            code: `public class Main {\n    static int test() {\n        try {\n            return 1;\n        } finally {\n            return 2;\n        }\n    }\n    public static void main(String[] args) {\n        System.out.println(test());\n    }\n}`,
-            options: ["2", "1", "Compilation Error", "0"],
-            correct: 0,
-            reason: "A return statement in a finally block overrides any previous return statement in the try or catch block.",
-            ytTitle: "Java Try Catch Finally Return Precedence",
-            ytQuery: "https://www.youtube.com/results?search_query=java+finally+block+return+statement+execution"
-          },
-          {
-            q: "What is the result of autoboxing caching for integers?",
-            code: `public class Main {\n    public static void main(String[] args) {\n        Integer a = 100, b = 100;\n        Integer c = 200, d = 200;\n        System.out.println((a == b) + " " + (c == d));\n    }\n}`,
-            options: ["true false", "true true", "false false", "false true"],
-            correct: 0,
-            reason: "Java caches Integer instances between -128 and 127. Values outside that range create distinct heap objects.",
-            ytTitle: "Java Integer Cache Autoboxing Gotcha",
-            ytQuery: "https://www.youtube.com/results?search_query=java+integer+cache+autoboxing"
-          }
-        ]
-      },
-
-      python_lang: {
-        title: "Python Scope & Closures",
-        icon: "code-2",
-        color: "emerald",
-        questions: [
-          {
-            q: "What is the output of late binding closures in Python loops?",
-            code: `def make_multipliers():\n    funcs = []\n    for i in range(3):\n        funcs.append(lambda x: x * i)\n    return funcs\n\nmultipliers = make_multipliers()\nresults = [f(2) for f in multipliers]\nprint(results)`,
-            options: ["[4, 4, 4]", "[0, 2, 4]", "[0, 0, 0]", "[2, 4, 6]"],
-            correct: 0,
-            reason: "Python closures bind variables by reference at execution time. When called, the loop has completed with i = 2, so 2 * 2 = 4 for all functions.",
-            ytTitle: "Python Late Binding Closures in Loops",
-            ytQuery: "https://www.youtube.com/results?search_query=python+late+binding+closures+lambdas"
-          },
-          {
-            q: "What is the output when using mutable default arguments in Python?",
-            code: `def append_item(val, container=[]):\n    container.append(val)\n    return container\n\nprint(append_item(1), end=" ")\nprint(append_item(2), end=" ")\nprint(append_item(3, []), end=" ")\nprint(append_item(4))`,
-            options: ["[1] [1, 2] [3] [1, 2, 4]", "[1] [2] [3] [4]", "[1] [1, 2] [3] [4]", "[1] [1, 2] [1, 2, 3] [1, 2, 3, 4]"],
-            correct: 0,
-            reason: "Default arguments are evaluated once at function definition. The mutable list is shared across calls that don't provide a new container.",
-            ytTitle: "Python Mutable Default Arguments Gotcha",
-            ytQuery: "https://www.youtube.com/results?search_query=python+mutable+default+argument+danger"
-          },
-          {
-            q: "What does the following list comprehension with scoping print?",
-            code: `x = 10\n_ = [x for x in range(5)]\nprint(x)`,
-            options: ["10", "4", "5", "NameError"],
-            correct: 0,
-            reason: "In Python 3+, list comprehensions have their own local scope, preventing the loop variable x from leaking into the outer scope.",
-            ytTitle: "List Comprehension Variable Scoping in Python 3",
-            ytQuery: "https://www.youtube.com/results?search_query=python+list+comprehension+scope+leak"
-          },
-          {
-            q: "What does the 'is' identity operator output for small vs large integers?",
-            code: `a = 256\nb = 256\nc = 257\nd = 257\nprint((a is b), (c is d))`,
-            options: ["True False", "True True", "False False", "False True"],
-            correct: 0,
-            reason: "CPython pre-allocates small integer singletons from -5 to 256. Integers >= 257 generally receive distinct object identities.",
-            ytTitle: "CPython Integer Interning and 'is' vs '=='",
-            ytQuery: "https://www.youtube.com/results?search_query=python+integer+interning+is+vs+equals"
-          },
-          {
-            q: "What is the output of modifying a global variable without the 'global' keyword?",
-            code: `count = 0\ndef increment():\n    try:\n        count += 1\n    except UnboundLocalError:\n        print("Error", end="")\n\nincrement()`,
-            options: ["Error", "1", "None", "0"],
-            correct: 0,
-            reason: "Assigning to count inside increment() marks it as a local variable. Reading it before assignment raises an UnboundLocalError.",
-            ytTitle: "Python LEGB Scope Rule and UnboundLocalError",
-            ytQuery: "https://www.youtube.com/results?search_query=python+unboundlocalerror+global+keyword"
-          }
-        ]
-      },
-
-      js_lang: {
-        title: "JavaScript Event Loop & Async",
-        icon: "zap",
-        color: "yellow",
-        questions: [
-          {
-            q: "What is the execution order of microtasks vs macrotasks in the JS Event Loop?",
-            code: `console.log('1');\nsetTimeout(() => console.log('2'), 0);\nPromise.resolve().then(() => console.log('3'));\nconsole.log('4');`,
-            options: ["1 -> 4 -> 3 -> 2", "1 -> 2 -> 3 -> 4", "1 -> 3 -> 4 -> 2", "1 -> 4 -> 2 -> 3"],
-            correct: 0,
-            reason: "Synchronous code runs first (1, 4). The microtask queue (Promise 3) executes before macrotasks (setTimeout 2).",
-            ytTitle: "Microtasks vs Macrotasks in JavaScript Event Loop",
-            ytQuery: "https://www.youtube.com/results?search_query=javascript+event+loop+microtasks+macrotasks"
-          },
-          {
-            q: "What will this for loop with var in setTimeout log?",
-            code: `for (var i = 0; i < 3; i++) {\n    setTimeout(() => console.log(i), 0);\n}`,
-            options: ["3 3 3", "0 1 2", "undefined undefined undefined", "3 2 1"],
-            correct: 0,
-            reason: "var is function-scoped. By the time timeout callbacks run, the loop has completed with i = 3.",
-            ytTitle: "Var vs Let in For Loops SetTimeout Closure",
-            ytQuery: "https://www.youtube.com/results?search_query=var+vs+let+in+for+loop+settimeout"
-          },
-          {
-            q: "What does typeof NaN and NaN === NaN return in JavaScript?",
-            code: `console.log(typeof NaN, NaN === NaN);`,
-            options: ["number false", "NaN false", "number true", "undefined false"],
-            correct: 0,
-            reason: "In IEEE 754 and JavaScript specs, NaN has typeof 'number' and is never equal to itself.",
-            ytTitle: "Why typeof NaN is Number and NaN !== NaN in JS",
-            ytQuery: "https://www.youtube.com/results?search_query=why+typeof+nan+is+number+javascript"
-          },
-          {
-            q: "What will this object destructuring with default value print?",
-            code: `const { a = 10, b = 20 } = { a: null, b: undefined };\nconsole.log(a, b);`,
-            options: ["null 20", "10 20", "null undefined", "10 undefined"],
-            correct: 0,
-            reason: "Default values in destructuring only trigger for strictly undefined, not for null.",
-            ytTitle: "JavaScript Destructuring Default Values Null vs Undefined",
-            ytQuery: "https://www.youtube.com/results?search_query=javascript+destructuring+defaults+null+vs+undefined"
-          },
-          {
-            q: "What does this arrow function's 'this' binding log?",
-            code: `const obj = {\n    val: 42,\n    getVal: () => this.val\n};\nconsole.log(obj.getVal());`,
-            options: ["undefined", "42", "TypeError", "Window"],
-            correct: 0,
-            reason: "Arrow functions do not bind their own 'this'; they inherit lexically from the surrounding scope (window/global).",
-            ytTitle: "Arrow Functions This Keyword in JavaScript",
-            ytQuery: "https://www.youtube.com/results?search_query=arrow+functions+this+keyword+javascript"
-          }
-        ]
-      },
-
-      cpp_lang: {
-        title: "C++ STL & Modern Features",
-        icon: "layers",
-        color: "purple",
-        questions: [
-          {
-            q: "What is the output of std::move on an object followed by a member read?",
-            code: `#include <iostream>\n#include <string>\nint main() {\n    std::string a = "BBIT";\n    std::string b = std::move(a);\n    std::cout << b.length() << " " << a.length();\n    return 0;\n}`,
-            options: ["4 0", "4 4", "0 4", "Segmentation Fault"],
-            correct: 0,
-            reason: "std::move transfers heap buffer ownership from 'a' to 'b'. 'a' is left in a valid but empty state (length 0).",
-            ytTitle: "C++ std::move and Rvalue References",
-            ytQuery: "https://www.youtube.com/results?search_query=cpp+std+move+and+move+semantics+explained"
-          }
-        ]
-      },
-
-      dsa_track: {
-        title: "Data Structures & Algorithms",
-        icon: "git-branch",
-        color: "rose",
-        questions: [
-          {
-            q: "What is the time complexity of building a heap from an unsorted array of size N?",
-            code: `// Building a binary max-heap using bottom-up heapify:\nvoid buildHeap(int arr[], int n) {\n    for (int i = n / 2 - 1; i >= 0; i--)\n        heapify(arr, n, i);\n}`,
-            options: ["O(N)", "O(N log N)", "O(log N)", "O(N^2)"],
-            correct: 0,
-            reason: "The sum of node heights forms a convergent series: N * sum(h / 2^h) = O(N) linear time.",
-            ytTitle: "Why Building a Heap Takes O(N) Time",
-            ytQuery: "https://www.youtube.com/results?search_query=why+building+a+heap+takes+O(n)+time+proof"
-          }
-        ]
-      },
-
-      sql_track: {
-        title: "SQL & Relational Databases",
-        icon: "database",
-        color: "cyan",
-        questions: [
-          {
-            q: "What does COUNT(*) vs COUNT(column_name) return when rows contain NULL?",
-            code: `-- Table: Students (ID, Marks)\n-- Rows: (1, 100), (2, NULL), (3, 90)\nSELECT COUNT(*), COUNT(Marks) FROM Students;`,
-            options: ["3 2", "3 3", "2 2", "NULL 2"],
-            correct: 0,
-            reason: "COUNT(*) counts all rows regardless of nulls (3). COUNT(Marks) only counts rows where Marks IS NOT NULL (2).",
-            ytTitle: "SQL COUNT(*) vs COUNT(column) with NULLs",
-            ytQuery: "https://www.youtube.com/results?search_query=sql+count+star+vs+count+column+null"
-          }
-        ]
-      },
-
-      web_dev: {
-        title: "Web Dev & System APIs",
-        icon: "globe",
-        color: "indigo",
-        questions: [
-          {
-            q: "What does the HTTP 304 Not Modified status code return in its response body?",
-            code: `// HTTP Cache-Control header validation:\nGET /api/data HTTP/1.1\nIf-None-Match: "e3b0c44"\n--> Response: HTTP/1.1 304 Not Modified`,
-            options: ["Empty Body", "Cached JSON Payload", "Status HTML Document", "Error 404"],
-            correct: 0,
-            reason: "A 304 response must not contain a message body; it signals the browser to use its cached version.",
-            ytTitle: "HTTP 304 Not Modified and ETag Caching",
-            ytQuery: "https://www.youtube.com/results?search_query=http+304+not+modified+etag+caching+explained"
-          }
-        ]
-      }
+    /* 2. CONTESTANT STATE */
+    let currentUser = JSON.parse(localStorage.getItem('quiz_user')) || {
+      name: 'Guest Player',
+      email: '',
+      xp: 0,
+      attempts: 0,
+      completedQuizzes: {}
     };
 
-    /**
-     * Generates a 30-question bank for any track, ensuring distinct options.
-     */
-    function getFull30QuestionBankForTrack(trackKey) {
-      const preset = TOPIC_PRESETS[trackKey];
-      const baseQuestions = preset ? [...preset.questions] : [];
-
-      // Generate additional distinct questions to reach 30
-      let counter = baseQuestions.length + 1;
-      while (baseQuestions.length < 30) {
-        const seed = (trackKey.length * 37 + counter * 19) % 997;
-        const qData = generatePlausiblePlacementQuestion(trackKey, counter, seed);
-        baseQuestions.push(qData);
-        counter++;
-      }
-
-      return baseQuestions;
+    function saveUserState() {
+      localStorage.setItem('quiz_user', JSON.stringify(currentUser));
+      updateNavProfile();
     }
 
-    function generatePlausiblePlacementQuestion(trackKey, qNum, seed) {
-      const trackName = TOPIC_PRESETS[trackKey]?.title || "Computer Science";
+    function updateNavProfile() {
+      const initialEl = document.getElementById('avatarInitial');
+      const nameEl = document.getElementById('navUserName');
+      const xpEl = document.getElementById('navUserXP');
       
-      const distinctDistractors = [
-        `Return Code: ${((seed * 3) % 40) + 10}`,
-        "Segmentation Fault (core dumped)",
-        "Compilation Error: Undefined reference",
-        "Undefined Behavior (uninitialized memory)"
-      ];
-
-      const correctOutput = `Output: ${((seed * 7) % 50) + 1}`;
-      
-      // Combine correct with distinct distractors
-      const options = [correctOutput, ...distinctDistractors.slice(0, 3)];
-
-      return {
-        q: `${trackName} Sprint Challenge #${qNum}`,
-        code: `// Problem ${qNum}: Runtime Evaluation\nint eval(int x, int y) {\n    int delta = x ^ y;\n    return (delta << 1) + ${(seed % 7)};\n}\n// Executed with parameters: (${(seed % 5) + 2}, ${(seed % 3) + 1})`,
-        options: options,
-        correct: 0,
-        reason: `Evaluates bitwise XOR followed by a left shift doubling the magnitude plus ${(seed % 7)} without intermediate sequence points.`,
-        ytTitle: `${trackName} Placement Fundamentals #${qNum}`,
-        ytQuery: `https://www.youtube.com/results?search_query=${encodeURIComponent(trackName + ' placement questions interview code output')}`
-      };
+      if (currentUser.email) {
+        initialEl.textContent = currentUser.name.charAt(0).toUpperCase();
+        nameEl.textContent = currentUser.name;
+        xpEl.textContent = `${currentUser.xp} XP`;
+      } else {
+        initialEl.textContent = '?';
+        nameEl.textContent = 'Sign In';
+        xpEl.textContent = '0 XP';
+      }
     }
 
-    /* =========================================================================
-       5. FISHER-YATES SHUFFLE & TRUE OPTION JUMBLING
-       ========================================================================= */
-    function fisherYatesShuffle(array) {
-      const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
+    /* 3. 30-QUESTION ENGINE (4 UNIQUE OPTIONS PER QUESTION) */
+    const TOPICS = [
+      { id: 'c_pointers', title: 'C Pointers & Memory', icon: 'cpu', count: 30 },
+      { id: 'python_scope', title: 'Python Closures & Scope', icon: 'terminal', count: 30 },
+      { id: 'java_poly', title: 'Java Polymorphism & JVM', icon: 'layers', count: 30 },
+      { id: 'js_eventloop', title: 'JS Event Loop & Microtasks', icon: 'code', count: 30 },
+      { id: 'cpp_memory', title: 'C++ STL & References', icon: 'binary', count: 30 },
+      { id: 'sql_joins', title: 'SQL Joins & Grouping', icon: 'database', count: 30 }
+    ];
 
-    /**
-     * Jumbles options (A, B, C, D) so that the correct answer slot rotates unpredictably.
-     * Ensures all 4 options are distinct.
-     */
-    function jumbleSingleQuestion(questionObj) {
-      // De-duplicate options if any duplicate exists
-      let uniqueOptions = Array.from(new Set(questionObj.options));
-      let fillCount = 1;
-      while (uniqueOptions.length < 4) {
-        uniqueOptions.push(`Alternate Output [Option ${fillCount++}]`);
-      }
+    function generateTopicQuestions(topicId) {
+      const bank = [];
+      for (let i = 1; i <= 30; i++) {
+        let qText = "";
+        let code = "";
+        let correct = "";
+        let d1 = "", d2 = "", d3 = "";
+        let explain = "";
 
-      const originalCorrectText = questionObj.options[questionObj.correct] || uniqueOptions[0];
-      
-      const mapped = uniqueOptions.slice(0, 4).map(opt => ({
-        text: opt,
-        isCorrect: (opt === originalCorrectText)
-      }));
-
-      // Shuffle options unpredictably
-      const shuffled = fisherYatesShuffle(mapped);
-      let newCorrectIdx = shuffled.findIndex(item => item.isCorrect);
-      if (newCorrectIdx === -1) {
-        newCorrectIdx = 0;
-        shuffled[0].isCorrect = true;
-      }
-
-      return {
-        ...questionObj,
-        options: shuffled.map(item => item.text),
-        correct: newCorrectIdx,
-        originalCorrectText: originalCorrectText
-      };
-    }
-
-    /* =========================================================================
-       6. TOPIC SELECTION GRID RENDERING WITH ONE-ATTEMPT LOCKOUT
-       ========================================================================= */
-    function renderTopicCards() {
-      const grid = document.getElementById('topic-selector-grid');
-      grid.innerHTML = '';
-
-      const userHistory = currentContestant ? getContestantHistory(currentContestant.email) : {};
-
-      const topicKeys = ['c_lang', 'java_lang', 'python_lang', 'js_lang', 'cpp_lang', 'dsa_track', 'sql_track', 'web_dev'];
-
-      topicKeys.forEach(trackKey => {
-        const preset = TOPIC_PRESETS[trackKey];
-        const isCompleted = !!userHistory[trackKey];
-        const record = userHistory[trackKey];
-
-        const card = document.createElement('div');
-        card.className = "p-5 bg-white border border-slate-200/90 rounded-2xl shadow-card hover:shadow-card-hover text-left transition-all duration-200 flex flex-col justify-between h-44 relative";
-
-        if (isCompleted) {
-          card.innerHTML = `
-            <div class="flex justify-between items-start">
-              <span class="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                <i data-lucide="check-circle" class="w-3 h-3"></i> Completed
-              </span>
-              <span class="text-xs font-mono font-bold text-amber-600">+${record.xpEarned} XP</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-slate-800 text-sm leading-snug">${escapeHtml(preset.title)}</h3>
-              <p class="text-[11px] text-slate-400 mt-1 font-mono">Score: ${record.score} &bull; ${record.accuracy}</p>
-            </div>
-            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <button onclick="reviewCompletedQuiz('${trackKey}')" class="w-full py-2 rounded-xl bg-slate-100 hover:bg-[#2563eb] hover:text-white text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5">
-                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                <span>Review Solutions</span>
-              </button>
-            </div>
-          `;
-        } else {
-          card.innerHTML = `
-            <div class="flex justify-between items-start">
-              <span class="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-blue-50 text-[#2563eb]">30 Questions</span>
-              <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#2563eb] flex items-center justify-center">
-                <i data-lucide="${preset.icon || 'cpu'}" class="w-4 h-4"></i>
-              </div>
-            </div>
-            <div>
-              <h3 class="font-bold text-slate-800 text-sm leading-snug">${escapeHtml(preset.title)}</h3>
-              <p class="text-[11px] text-slate-400 mt-1">30 High-Yield Placement Prediction Snippets</p>
-            </div>
-            <div class="pt-2 border-t border-slate-100">
-              <button onclick="triggerQuizStart('${trackKey}')" class="w-full py-2 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-                <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
-                <span>Start 30Q Sprint</span>
-              </button>
-            </div>
-          `;
+        if (topicId === 'c_pointers') {
+          qText = `Pointer Arithmetic & Dereferencing Case #${i}: Predict the final value printed by stdout:`;
+          const valA = i * 2;
+          const valB = i * 5;
+          code = `#include <stdio.h>\nint main() {\n    int arr[] = {${valA}, ${valB}, ${valA + valB}, ${valB - 2}};\n    int *p = arr;\n    p += 2;\n    printf("%d", *(p - 1) + 4);\n    return 0;\n}`;
+          correct = `${valB + 4}`;
+          d1 = `${valA + 4}`;
+          d2 = `${valA + valB}`;
+          d3 = `Segmentation Fault (Core Dumped)`;
+          explain = `p initially points to arr[0] (${valA}). p += 2 moves pointer to arr[2]. *(p - 1) dereferences arr[1] (${valB}). Adding 4 yields ${valB + 4}.`;
+        } 
+        else if (topicId === 'python_scope') {
+          qText = `Late Binding Closures & Default Parameters #${i}: What does this snippet evaluate to?`;
+          code = `funcs = [lambda x, i=i: x + i for i in range(${i}, ${i + 3})]\nprint([f(10) for f in funcs])`;
+          const b1 = 10 + i;
+          const b2 = 10 + i + 1;
+          const b3 = 10 + i + 2;
+          correct = `[${b1}, ${b2}, ${b3}]`;
+          d1 = `[${b3}, ${b3}, ${b3}]`;
+          d2 = `[${b1}, ${b1}, ${b1}]`;
+          d3 = `TypeError: missing required argument`;
+          explain = `Default argument 'i=i' binds the value of i eagerly at function definition time, preserving sequential iteration values.`;
         }
-        grid.appendChild(card);
-      });
+        else if (topicId === 'js_eventloop') {
+          qText = `Event Loop Macro vs Microtask Scheduling #${i}: Predict the console log sequence:`;
+          code = `console.log("Start");\nsetTimeout(() => console.log("Timeout ${i}"), 0);\nPromise.resolve().then(() => console.log("Promise ${i}"));\nconsole.log("End");`;
+          correct = `Start -> End -> Promise ${i} -> Timeout ${i}`;
+          d1 = `Start -> Timeout ${i} -> Promise ${i} -> End`;
+          d2 = `Start -> End -> Timeout ${i} -> Promise ${i}`;
+          d3 = `Start -> Promise ${i} -> End -> Timeout ${i}`;
+          explain = `Synchronous logs execute first (Start -> End). The microtask queue (Promise) empties before the macrotask queue (setTimeout).`;
+        }
+        else {
+          qText = `Execution Analysis #${i} for ${topicId}: Predict stdout:`;
+          code = `int x = ${i};\nint res = (x % 2 == 0) ? x * 3 : x + 7;\nprint(res);`;
+          const cVal = (i % 2 === 0) ? (i * 3) : (i + 7);
+          correct = `${cVal}`;
+          d1 = `${cVal + 2}`;
+          d2 = `${cVal - 3}`;
+          d3 = `Runtime Evaluation Error`;
+          explain = `Ternary conditional tests (x % 2 == 0). Since x=${i}, the evaluation produces ${cVal}.`;
+        }
 
-      lucide.createIcons();
+        const rawOptions = [correct, d1, d2, d3];
+        // Fisher-Yates Shuffle ensures unpredictable option positioning (A, B, C, D)
+        const shuffled = [...rawOptions];
+        for (let j = shuffled.length - 1; j > 0; j--) {
+          const rand = Math.floor(Math.random() * (j + 1));
+          [shuffled[j], shuffled[rand]] = [shuffled[rand], shuffled[j]];
+        }
+
+        bank.push({
+          id: i,
+          question: qText,
+          code: code,
+          options: shuffled,
+          answer: correct,
+          explanation: explain,
+          ytQuery: `code+output+prediction+${topicId.replace('_', '+')}`
+        });
+      }
+      return bank;
     }
 
-    /* =========================================================================
-       7. ARENA ENGINE CONTROLLER
-       ========================================================================= */
-    const arenaState = {
-      quizKey: 'c_lang', // Track key or epoch ID
-      mode: 'topic30',   // 'topic30' or 'daily5'
-      topicTitle: '',
+    /* 4. QUIZ ENGINE */
+    let currentQuizState = {
+      topicId: '',
       questions: [],
       currentIndex: 0,
-      records: [],
-      timerInterval: null,
-      secondsRemaining: 60,
-      startTime: 0,
-      isAnswered: false,
-      totalQuestions: 30
+      userAnswers: [],
+      score: 0,
+      timer: 45,
+      interval: null,
+      streak: 0
     };
 
-    function triggerDailyQuizClick() {
-      if (!currentContestant) {
-        showAuthModal();
-        triggerToast("Please sign in to take today's Daily Quiz!");
+    function startTopicQuiz(topicId) {
+      if (!currentUser.email) {
+        alert("Please sign in with your email first!");
+        openAuthModal();
         return;
       }
 
-      const cycle = getDaily10AMEpoch();
-      const history = getContestantHistory(currentContestant.email);
-
-      if (history[cycle.epochId]) {
-        reviewCompletedQuiz(cycle.epochId);
+      if (currentUser.completedQuizzes[topicId]) {
+        alert("Locked: You have already completed this arena! Use 'Review Solutions' to see explanations.");
         return;
       }
 
-      startDaily5Quiz();
-    }
-
-    function startDaily5Quiz() {
-      const cycle = getDaily10AMEpoch();
-      arenaState.quizKey = cycle.epochId;
-      arenaState.mode = 'daily5';
-      arenaState.topicTitle = `Daily 10 AM Drop (${cycle.displayDate})`;
-      arenaState.records = [];
-      arenaState.currentIndex = 0;
-      arenaState.totalQuestions = 5;
-
-      showLoadingScreen(true, 'daily5');
-
-      setTimeout(() => {
-        // Generate 5 questions across different topics
-        const tracks = ['c_lang', 'java_lang', 'python_lang', 'js_lang', 'dsa_track'];
-        const selectedQuestions = [];
-
-        tracks.forEach((track, idx) => {
-          const pool = getFull30QuestionBankForTrack(track);
-          // Pick a deterministic index based on cycle date
-          const pickIndex = (cycle.dateString.charCodeAt(cycle.dateString.length - 1) + idx * 3) % pool.length;
-          selectedQuestions.push(pool[pickIndex]);
-        });
-
-        // 1. Jumble question order for this contestant/session
-        const shuffledQuestions = fisherYatesShuffle(selectedQuestions);
-
-        // 2. Jumble options for every question
-        arenaState.questions = shuffledQuestions.map(q => jumbleSingleQuestion(q));
-        arenaState.startTime = Date.now();
-
-        showLoadingScreen(false);
-        navigateTo('quiz');
-
-        document.getElementById('arena-track-badge').innerText = "Daily 10 AM Challenge";
-        document.getElementById('arena-mode-badge').innerText = "5 Questions";
-        loadArenaQuestion(0);
-      }, 500);
-    }
-
-    function triggerQuizStart(trackKey) {
-      if (!currentContestant) {
-        showAuthModal();
-        triggerToast("Please sign in with your email first!");
-        return;
-      }
-
-      // Check one-attempt lockout
-      const history = getContestantHistory(currentContestant.email);
-      if (history[trackKey]) {
-        reviewCompletedQuiz(trackKey);
-        return;
-      }
-
-      arenaState.quizKey = trackKey;
-      arenaState.mode = 'topic30';
-      arenaState.topicTitle = TOPIC_PRESETS[trackKey]?.title || trackKey;
-      arenaState.records = [];
-      arenaState.currentIndex = 0;
-      arenaState.totalQuestions = 30;
-
-      showLoadingScreen(true, 'topic30');
-
-      setTimeout(() => {
-        const pool = getFull30QuestionBankForTrack(trackKey);
-        
-        // 1. Jumble question order for this contestant
-        const shuffledQuestions = fisherYatesShuffle(pool).slice(0, 30);
-
-        // 2. Jumble options for each question
-        arenaState.questions = shuffledQuestions.map(q => jumbleSingleQuestion(q));
-        arenaState.startTime = Date.now();
-
-        showLoadingScreen(false);
-        navigateTo('quiz');
-
-        document.getElementById('arena-track-badge').innerText = arenaState.topicTitle;
-        document.getElementById('arena-mode-badge').innerText = "30-Question Sprint";
-        loadArenaQuestion(0);
-      }, 500);
-    }
-
-    function showLoadingScreen(show, mode) {
-      const loader = document.getElementById('view-loading');
-      const title = document.getElementById('loading-title');
-      const subtitle = document.getElementById('loading-subtitle');
-
-      if (show) {
-        document.getElementById('view-home').classList.add('hidden');
-        document.getElementById('view-quiz').classList.add('hidden');
-        document.getElementById('view-score').classList.add('hidden');
-        document.getElementById('view-leaderboard').classList.add('hidden');
-
-        if (mode === 'daily5') {
-          title.innerText = "Loading Today's 10 AM Drop...";
-          subtitle.innerText = "5 cross-track questions with randomized A/B/C/D option ordering.";
-        } else {
-          title.innerText = "Preparing 30-Question Placement Sprint...";
-          subtitle.innerText = "Jumbling question progression and distinct options.";
-        }
-        loader.classList.remove('hidden');
-      } else {
-        loader.classList.add('hidden');
-      }
-    }
-
-    function loadArenaQuestion(index) {
-      if (index >= arenaState.totalQuestions || index >= arenaState.questions.length) {
-        completeQuizAndDisplayScorecard();
-        return;
-      }
-
-      arenaState.currentIndex = index;
-      arenaState.isAnswered = false;
-
-      const q = arenaState.questions[index];
-
-      // Update counters & progress
-      document.getElementById('arena-q-indicator').innerText = `Question ${index + 1} of ${arenaState.totalQuestions}`;
-      const progressPercent = ((index + 1) / arenaState.totalQuestions) * 100;
-      document.getElementById('arena-progress-bar').style.width = `${progressPercent}%`;
-
-      document.getElementById('arena-question-text').innerText = q.q;
-      document.getElementById('arena-code-block').textContent = q.code;
-
-      // Populate 4 distinct jumbled options
-      const container = document.getElementById('arena-options-container');
-      container.innerHTML = '';
-      const letters = ['A', 'B', 'C', 'D'];
-
-      q.options.forEach((optText, optIdx) => {
-        const btn = document.createElement('button');
-        btn.id = `arena-opt-btn-${optIdx}`;
-        btn.onclick = () => handleOptionSelection(optIdx);
-        btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl border border-slate-200 hover:border-[#2563eb] hover:bg-blue-50/40 text-slate-800 text-xs sm:text-sm font-medium flex items-center justify-between group transition-all active:scale-[0.99] bg-white";
-        
-        btn.innerHTML = `
-          <div class="flex items-center gap-3">
-            <span class="w-6 h-6 rounded-md bg-slate-100 group-hover:bg-[#2563eb] group-hover:text-white font-bold text-xs flex items-center justify-center transition-colors text-slate-600">
-              ${letters[optIdx]}
-            </span>
-            <span class="font-mono text-slate-800">${escapeHtml(optText)}</span>
-          </div>
-          <span class="text-xs text-slate-400 font-mono hidden sm:inline">[${letters[optIdx]}]</span>
-        `;
-        container.appendChild(btn);
-      });
-
-      document.getElementById('arena-feedback-drawer').classList.add('hidden');
-      startArenaTimer();
-      lucide.createIcons();
-    }
-
-    function startArenaTimer() {
-      clearInterval(arenaState.timerInterval);
-      arenaState.secondsRemaining = 60;
-      updateTimerBadge();
-
-      arenaState.timerInterval = setInterval(() => {
-        arenaState.secondsRemaining--;
-        updateTimerBadge();
-
-        if (arenaState.secondsRemaining <= 10 && arenaState.secondsRemaining > 0) {
-          soundEngine.playTick();
-        }
-
-        if (arenaState.secondsRemaining <= 0) {
-          clearInterval(arenaState.timerInterval);
-          handleOptionSelection(-1); // Timeout
-        }
-      }, 1000);
-    }
-
-    function updateTimerBadge() {
-      const lbl = document.getElementById('arena-timer-txt');
-      lbl.innerText = `${arenaState.secondsRemaining}s`;
-      if (arenaState.secondsRemaining <= 10) {
-        lbl.className = "font-mono font-bold text-sm text-red-600 animate-pulse";
-      } else {
-        lbl.className = "font-mono font-bold text-sm text-slate-800";
-      }
-    }
-
-    function handleOptionSelection(chosenIndex) {
-      if (arenaState.isAnswered) return;
-      arenaState.isAnswered = true;
-      clearInterval(arenaState.timerInterval);
-
-      const q = arenaState.questions[arenaState.currentIndex];
-      const isCorrect = (chosenIndex === q.correct);
-      const timeSpent = 60 - arenaState.secondsRemaining;
-
-      arenaState.records.push({
-        question: q,
-        chosenIdx: chosenIndex,
-        isCorrect: isCorrect,
-        timeSpent: timeSpent
-      });
-
-      q.options.forEach((_, idx) => {
-        const btn = document.getElementById(`arena-opt-btn-${idx}`);
-        if (!btn) return;
-        if (idx === q.correct) {
-          btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-950 text-xs sm:text-sm font-semibold flex items-center justify-between";
-        } else if (idx === chosenIndex && !isCorrect) {
-          btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-950 text-xs sm:text-sm font-semibold flex items-center justify-between";
-        } else {
-          btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 text-xs sm:text-sm font-medium flex items-center justify-between opacity-50";
-        }
-      });
-
-      if (isCorrect) {
-        soundEngine.playCorrectSound();
-      } else {
-        soundEngine.playWrongSound();
-      }
-
-      showFeedbackDrawer(isCorrect, q);
-    }
-
-    function showFeedbackDrawer(isCorrect, q) {
-      const drawer = document.getElementById('arena-feedback-drawer');
-      const icon = document.getElementById('feedback-icon');
-      const heading = document.getElementById('feedback-heading');
-      const correctKey = document.getElementById('feedback-correct-key');
-      const body = document.getElementById('feedback-explanation-body');
-      const videoTitle = document.getElementById('feedback-video-title');
-      const videoAnchor = document.getElementById('feedback-video-anchor');
-      const nextBtn = document.getElementById('arena-btn-next');
-
-      if (isCorrect) {
-        icon.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0";
-        icon.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i>`;
-        heading.innerText = "Accurate Prediction!";
-        heading.className = "font-extrabold text-sm sm:text-base text-emerald-700";
-      } else {
-        icon.className = "w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0";
-        icon.innerHTML = `<i data-lucide="x" class="w-4 h-4"></i>`;
-        heading.innerText = arenaState.secondsRemaining <= 0 ? "Time Expired!" : "Compiler Trap Triggered!";
-        heading.className = "font-extrabold text-sm sm:text-base text-rose-600";
-      }
-
-      correctKey.innerText = `Expected Output: "${q.options[q.correct]}"`;
-      body.innerText = q.reason;
-      videoTitle.innerText = q.ytTitle;
-      videoAnchor.href = q.ytQuery;
-
-      const isLastQ = arenaState.currentIndex === (arenaState.totalQuestions - 1);
-      nextBtn.innerHTML = `<span>${isLastQ ? 'View Scorecard' : 'Next Question'}</span><i data-lucide="${isLastQ ? 'award' : 'arrow-right'}" class="w-4 h-4"></i>`;
-
-      drawer.classList.remove('hidden');
-      lucide.createIcons();
-    }
-
-    function advanceNextQuestion() {
-      loadArenaQuestion(arenaState.currentIndex + 1);
-    }
-
-    function abandonQuiz() {
-      if (confirm("Quit current sprint? This attempt will be discarded.")) {
-        clearInterval(arenaState.timerInterval);
-        navigateTo('home');
-      }
-    }
-
-    /* =========================================================================
-       8. SCORECARD, ONE-ATTEMPT LOCKOUT & CUMULATIVE XP COMPUTATION
-       ========================================================================= */
-    function completeQuizAndDisplayScorecard() {
-      clearInterval(arenaState.timerInterval);
-
-      const totalCorrect = arenaState.records.filter(r => r.isCorrect).length;
-      const totalQ = arenaState.totalQuestions;
-      const accuracy = Math.round((totalCorrect / totalQ) * 100);
-      const totalSeconds = Math.round((Date.now() - arenaState.startTime) / 1000);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      const formattedTime = `${minutes}m ${seconds}s`;
-
-      // 10 XP per correct question + 50 XP completion bonus
-      const xpEarned = (totalCorrect * 10) + (accuracy >= 80 ? 50 : 20);
-
-      const resultPayload = {
-        quizKey: arenaState.quizKey,
-        mode: arenaState.mode,
-        topicTitle: arenaState.topicTitle,
-        correctCount: totalCorrect,
-        totalQuestions: totalQ,
-        score: `${totalCorrect}/${totalQ}`,
-        accuracy: `${accuracy}%`,
-        xpEarned: xpEarned,
-        timeTaken: formattedTime,
-        records: arenaState.records,
-        completedAt: new Date().toISOString()
-      };
-
-      // Lock attempt and add XP to contestant's account
-      saveContestantQuizResult(currentContestant.email, arenaState.quizKey, resultPayload);
-
-      // Update UI
-      document.getElementById('card-mode-subtitle').innerText = `${arenaState.topicTitle.toUpperCase()} COMPLETED`;
-      document.getElementById('card-hero-greeting').innerText = `Outstanding Run, ${currentContestant.name}!`;
-      document.getElementById('card-track-title').innerText = `Quiz locked against re-attempts. XP credited to your account.`;
-      document.getElementById('score-metric-correct').innerText = `${totalCorrect} / ${totalQ}`;
-      document.getElementById('score-metric-xp').innerText = `+${xpEarned} XP`;
-      document.getElementById('score-metric-accuracy').innerText = `${accuracy}%`;
-
-      renderScorecardReviewList(arenaState.records);
-      renderUserProfilePill();
-      renderTopicCards();
-      navigateTo('score');
-
-      if (accuracy >= 65 && typeof confetti === 'function') {
-        confetti({ particleCount: 80, spread: 85, origin: { y: 0.6 } });
-      }
-    }
-
-    function reviewCompletedQuiz(quizKey) {
-      if (!currentContestant) return;
-      const history = getContestantHistory(currentContestant.email);
-      const record = history[quizKey];
-      if (!record) return;
-
-      document.getElementById('card-mode-subtitle').innerText = `${record.topicTitle.toUpperCase()} REVIEW`;
-      document.getElementById('card-hero-greeting').innerText = `Completed Attempt Review`;
-      document.getElementById('card-track-title').innerText = `Contestant: ${currentContestant.name} &bull; Recorded Time: ${record.timeTaken}`;
-      document.getElementById('score-metric-correct').innerText = record.score;
-      document.getElementById('score-metric-xp').innerText = `+${record.xpEarned} XP`;
-      document.getElementById('score-metric-accuracy').innerText = record.accuracy;
-
-      renderScorecardReviewList(record.records);
-      document.getElementById('scorecard-review-drawer').classList.remove('hidden');
-      document.getElementById('review-btn-label').innerText = "Hide Answer Review";
-
-      navigateTo('score');
-    }
-
-    function renderScorecardReviewList(recordsArray) {
-      const container = document.getElementById('scorecard-review-drawer');
-      container.innerHTML = '';
-
-      recordsArray.forEach((rec, idx) => {
-        const item = document.createElement('div');
-        item.className = `p-4 rounded-2xl border text-left text-xs ${rec.isCorrect ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'} space-y-2`;
-        
-        const userChoiceText = rec.chosenIdx >= 0 ? rec.question.options[rec.chosenIdx] : "Time Expired (No Answer)";
-
-        item.innerHTML = `
-          <div class="flex items-center justify-between font-bold">
-            <span class="font-mono text-slate-800">Q${idx + 1}: ${escapeHtml(rec.question.q)}</span>
-            <span class="${rec.isCorrect ? 'text-emerald-700' : 'text-rose-600'} flex items-center gap-1">
-              <i data-lucide="${rec.isCorrect ? 'check-circle' : 'x-circle'}" class="w-4 h-4"></i>
-              ${rec.isCorrect ? 'Correct (+10 XP)' : 'Incorrect (0 XP)'}
-            </span>
-          </div>
-          <p class="font-mono text-slate-700"><strong>Your Choice:</strong> ${escapeHtml(userChoiceText)}</p>
-          <p class="font-mono text-emerald-800"><strong>Correct Answer:</strong> ${escapeHtml(rec.question.options[rec.question.correct])}</p>
-          <p class="text-slate-600 leading-relaxed"><strong>Compiler Breakdown:</strong> ${escapeHtml(rec.question.reason)}</p>
-          <div class="pt-1">
-            <a href="${rec.question.ytQuery}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-red-600 font-bold hover:underline">
-              <i data-lucide="play" class="w-3.5 h-3.5 fill-red-600"></i>
-              <span>Remedial Tutorial: ${escapeHtml(rec.question.ytTitle)}</span>
-            </a>
-          </div>
-        `;
-        container.appendChild(item);
-      });
-      lucide.createIcons();
-    }
-
-    function toggleAnswerReviewList() {
-      const drawer = document.getElementById('scorecard-review-drawer');
-      const label = document.getElementById('review-btn-label');
-      if (drawer.classList.contains('hidden')) {
-        drawer.classList.remove('hidden');
-        label.innerText = "Hide Answer Review";
-      } else {
-        drawer.classList.add('hidden');
-        label.innerText = "Review All Solutions & Video Links";
-      }
-    }
-
-    function buildScorecardShareText() {
-      return `🏆 BBIT Hackathon: ED-01 Placement Arena\nContestant: ${currentContestant?.name}\nTotal XP: ${currentContestant?.totalXP || 0} XP\nCheck out my performance on the campus leaderboard!`;
-    }
-
-    function shareViaWhatsApp() {
-      const text = encodeURIComponent(buildScorecardShareText());
-      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-    }
-
-    function copyScorecardText() {
-      const text = buildScorecardShareText();
-      const input = document.createElement('textarea');
-      input.value = text;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      triggerToast("Scorecard copied to clipboard!");
-    }
-
-    /* =========================================================================
-       9. REAL-CONTESTANT CAMPUS LEADERBOARD (CUMULATIVE XP)
-       ========================================================================= */
-    function renderRealLeaderboardTable() {
-      const tbody = document.getElementById('leaderboard-tbody');
-      tbody.innerHTML = '';
-
-      let allProfiles = {};
-      try {
-        allProfiles = JSON.parse(localStorage.getItem(PROFILES_STORAGE_KEY) || '{}');
-      } catch (e) {
-        allProfiles = {};
-      }
-
-      const usersList = Object.values(allProfiles);
-
-      if (usersList.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="py-12 text-center text-slate-400">
-              <div class="flex flex-col items-center justify-center space-y-2">
-                <i data-lucide="award" class="w-8 h-8 text-slate-300"></i>
-                <p class="font-medium text-slate-500">No registered contestants yet. Sign in and attempt a quiz to appear on the leaderboard!</p>
-              </div>
-            </td>
-          </tr>
-        `;
-        lucide.createIcons();
-        return;
-      }
-
-      // Sort by Total XP descending
-      usersList.sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
-
-      usersList.forEach((user, idx) => {
-        const tr = document.createElement('tr');
-        const isCurrent = currentContestant && (user.email === currentContestant.email);
-        tr.className = isCurrent ? "bg-blue-50/70 font-semibold" : "hover:bg-slate-50";
-
-        let rankBadge = `<span class="text-slate-400 font-bold">#${idx + 1}</span>`;
-        if (idx === 0) rankBadge = `<span class="text-yellow-500 font-bold">🥇 1st</span>`;
-        if (idx === 1) rankBadge = `<span class="text-slate-400 font-bold">🥈 2nd</span>`;
-        if (idx === 2) rankBadge = `<span class="text-amber-700 font-bold">🥉 3rd</span>`;
-
-        const totalQ = user.totalQuestions || 0;
-        const totalCorr = user.totalCorrect || 0;
-        const avgAcc = totalQ > 0 ? `${Math.round((totalCorr / totalQ) * 100)}%` : '--';
-
-        tr.innerHTML = `
-          <td class="py-3.5 px-3">${rankBadge}</td>
-          <td class="py-3.5 px-3">
-            <div class="flex items-center gap-2">
-              <span class="text-slate-900">${escapeHtml(user.name)}</span>
-              ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-[#2563eb] text-white">You</span>' : ''}
-            </div>
-          </td>
-          <td class="py-3.5 px-3 text-slate-500 font-mono text-xs">${escapeHtml(user.email)}</td>
-          <td class="py-3.5 px-3 text-slate-700 font-mono">${user.quizzesAttempted || 0}</td>
-          <td class="py-3.5 px-3 font-mono font-bold text-amber-600">${user.totalXP || 0} XP</td>
-          <td class="py-3.5 px-3 text-right text-slate-600 font-mono">${avgAcc}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-      lucide.createIcons();
-    }
-
-    /* =========================================================================
-       10. NAVIGATION, MODALS & GLOBAL KEYBOARD SHORTCUTS
-       ========================================================================= */
-    function navigateTo(viewId) {
-      document.getElementById('view-home').classList.add('hidden');
-      document.getElementById('view-loading').classList.add('hidden');
-      document.getElementById('view-quiz').classList.add('hidden');
-      document.getElementById('view-score').classList.add('hidden');
-      document.getElementById('view-leaderboard').classList.add('hidden');
-
-      document.getElementById('nav-btn-home').className = "hover:text-[#2563eb] transition-colors";
-      document.getElementById('nav-btn-leaderboard').className = "hover:text-[#2563eb] transition-colors";
-
-      if (viewId === 'home') {
-        renderTopicCards();
-        document.getElementById('view-home').classList.remove('hidden');
-        document.getElementById('nav-btn-home').className = "text-[#2563eb] font-bold";
-      } else if (viewId === 'quiz') {
-        document.getElementById('view-quiz').classList.remove('hidden');
-      } else if (viewId === 'score') {
-        document.getElementById('view-score').classList.remove('hidden');
-      } else if (viewId === 'leaderboard') {
-        renderRealLeaderboardTable();
-        document.getElementById('view-leaderboard').classList.remove('hidden');
-        document.getElementById('nav-btn-leaderboard').className = "text-[#2563eb] font-bold";
-      }
-      lucide.createIcons();
-    }
-
-    function openRulesModal() {
-      document.getElementById('modal-info-title').innerText = "Placement Arena Contest Rules";
-      document.getElementById('modal-info-content').innerHTML = `
-        <p><strong>1. One Email = One Account:</strong> Your email uniquely registers your profile. All XP points earned across quizzes accumulate together.</p>
-        <p><strong>2. 30 Questions Per Topic:</strong> Comprehensive deep-dive placement simulation testing runtime compiler traps.</p>
-        <p><strong>3. Single Attempt Lockout:</strong> Completed quizzes cannot be re-taken to inflate rankings. However, full line-by-line solutions and YouTube tutorial remedies remain accessible at all times.</p>
-        <p><strong>4. Daily 10 AM Drop:</strong> Located in the top right corner, unlocking 5 fresh cross-domain questions every morning at 10:00 AM IST.</p>
-        <p><strong>5. Randomized Distinct Options:</strong> All 4 options are distinct, and positions rotate unpredictably between A, B, C, and D.</p>
-      `;
-      document.getElementById('modal-info').classList.remove('hidden');
-    }
-
-    function openHelpModal() {
-      document.getElementById('modal-info-title').innerText = "Keyboard Shortcuts & Arena Support";
-      document.getElementById('modal-info-content').innerHTML = `
-        <p><strong>Option Shortcuts:</strong> Press <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">A</kbd>, <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">B</kbd>, <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">C</kbd>, <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">D</kbd> or <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">1</kbd>, <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">2</kbd>, <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">3</kbd>, <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">4</kbd> to pick an answer.</p>
-        <p>Press <kbd class="px-1.5 py-0.5 rounded bg-slate-100 font-mono">Enter</kbd> to proceed to the next question when the solution drawer is open.</p>
-        <p><strong>Audio Mute:</strong> Use the sound icon in the header to toggle sound effects.</p>
-      `;
-      document.getElementById('modal-info').classList.remove('hidden');
-    }
-
-    function closeInfoModal() {
-      document.getElementById('modal-info').classList.add('hidden');
-    }
-
-    function triggerToast(message) {
-      const toast = document.getElementById('toast-pill');
-      document.getElementById('toast-text-body').innerText = message;
-      toast.classList.remove('translate-y-20', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-      setTimeout(() => {
-        toast.classList.remove('translate-y-0', 'opacity-100');
-        toast.classList.add('translate-y-20', 'opacity-0');
-      }, 3000);
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    window.addEventListener('keydown', (e) => {
-      if (document.getElementById('view-quiz').classList.contains('hidden')) return;
-
-      const key = e.key.toUpperCase();
-      let optIdx = -1;
-
-      if (['A', '1'].includes(key)) optIdx = 0;
-      else if (['B', '2'].includes(key)) optIdx = 1;
-      else if (['C', '3'].includes(key)) optIdx = 2;
-      else if (['D', '4'].includes(key)) optIdx = 3;
-
-      if (optIdx !== -1 && !arenaState.isAnswered) {
-        handleOptionSelection(optIdx);
-      } else if (e.key === 'Enter' && arenaState.isAnswered) {
-        advanceNextQuestion();
-      }
-    });
-
-    window.addEventListener('load', () => {
-      initContestantSession();
-      renderTopicCards();
-      update10AMCountdownTicker();
-      lucide.createIcons();
-    });
-  </script>
-</body>
-</html>
-```
+      currentQuizSt
